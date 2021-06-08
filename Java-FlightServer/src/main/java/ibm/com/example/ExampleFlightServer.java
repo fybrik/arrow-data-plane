@@ -78,7 +78,7 @@ public class ExampleFlightServer implements AutoCloseable {
     }
 
     private final class Producer extends NoOpFlightProducer {
-        private final int RecordsPerBatch = 4096;
+        private final int RecordsPerBatch = 1024*1024;
         private final VectorSchemaRoot constVectorSchemaRoot = getConstVectorSchemaRoot();
 
         private VectorSchemaRoot getConstVectorSchemaRoot() {
@@ -112,7 +112,7 @@ public class ExampleFlightServer implements AutoCloseable {
             final Runnable loadData = () -> {
                 listener.setUseZeroCopy(true);
                 listener.start(this.constVectorSchemaRoot);
-                for (int i=0; i<10000; i++) {
+                for (int i=0; i<1000; i++) {
                     listener.putNext();
                 }
                 listener.completed();
