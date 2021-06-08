@@ -59,6 +59,12 @@ public class RunBenchmark {
     }
 
     static class MyClient implements Runnable {
+        int port;
+
+        public MyClient(int port) {
+            this.port = port;
+        }
+
         @Override
         public void run() {
             try {
@@ -70,7 +76,7 @@ public class RunBenchmark {
             BufferAllocator allocator = a.newChildAllocator("flight-client", 0, Long.MAX_VALUE);
             final FlightClient client = FlightClient.builder()
                     .allocator(allocator)
-                    .location(Location.forGrpcInsecure("localhost", 12232))
+                    .location(Location.forGrpcInsecure("localhost", this.port))
                     .build();
 
             final CallHeaders callHeaders = new FlightCallHeaders();
@@ -85,6 +91,7 @@ public class RunBenchmark {
             FlightStream s = client.getStream(ticket);
             System.out.println("About to traverse record-batches");
             int i = 0;
+            long start = System.currentTimeMillis();
             while (s.next()) {
                 i++;
                 System.out.println(i);
@@ -94,25 +101,50 @@ public class RunBenchmark {
                 //System.out.println(root.getVector(2));
                 //System.out.println(root.getVector(3));
             }
+            long finish = System.currentTimeMillis();
+            long timeElapsed = finish - start;
+            System.out.println("Time spent traversing dataset: " + timeElapsed/1000.0 + " seconds");
             System.out.println("Done traversing record-batches");
         }
     }
 
     public static void main(String[] args) throws InterruptedException {
+        if (args.length != 1) {
+            System.out.println("Need single argument: either 'direct' or 'relay'");
+            System.exit(-1);
+        }
+        if (!args[0].equals("direct") && !args[0].equals("relay")) {
+            System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + args[0]);
+            System.exit(-1);
+        }
+
+        boolean direct = false;
+        if (args[0].equals("direct")) {
+            direct = true;
+        }
+
+        Thread t1, t2 = null, t3;
+
         MyServer s = new MyServer();
-        MyRelay r = new MyRelay();
-        MyClient c = new MyClient();
-
-        Thread t1 =new Thread(s);
-        Thread t2 =new Thread(r);
-        Thread t3 =new Thread(c);
-
+        t1 = new Thread(s);
         t1.start();
-        t2.start();
-        t3.start();
 
+        if (!direct) {
+            MyRelay r = new MyRelay();
+            t2 = new Thread(r);
+            t2.start();
+        } else {
+            System.out.println("No need to run relay server");
+        }
+
+        MyClient c = new MyClient(direct ? 12233 : 12232);
+        t3 = new Thread(c);
+        t3.start();
         t3.join();
+
         t1.interrupt();
-        t2.interrupt();
+        if (!direct) {
+            t2.interrupt();
+        }
     }
 }
