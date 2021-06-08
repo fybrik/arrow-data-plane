@@ -31,14 +31,29 @@ public class RelayFlightServer implements AutoCloseable {
     }
 
     public RelayFlightServer(BufferAllocator incomingAllocator, Location location) {
-        this(incomingAllocator, location, false);
+        this(incomingAllocator, location, new BackpressureStrategy() {
+            private FlightProducer.ServerStreamListener listener;
+
+            @Override
+            public void register(FlightProducer.ServerStreamListener listener) {
+                this.listener = listener;
+            }
+
+            @Override
+            public WaitResult waitForListener(long timeout) {
+                while (!listener.isReady() && !listener.isCancelled()) {
+                    // busy wait
+                }
+                return WaitResult.READY;
+            }
+        }, false);
     }
 
-    public RelayFlightServer(BufferAllocator incomingAllocator, Location location,
+    public RelayFlightServer(BufferAllocator incomingAllocator, Location location, BackpressureStrategy bpStrategy,
                              boolean isNonBlocking) {
         this.allocator = incomingAllocator.newChildAllocator("flight-server", 0, Long.MAX_VALUE);
         this.location = location;
-        Producer producer = new Producer();
+        Producer producer = new Producer(bpStrategy);
         this.flightServer = FlightServer.builder(this.allocator, location, producer).build();
         this.isNonBlocking = isNonBlocking;
         this.client = FlightClient.builder()
@@ -78,9 +93,16 @@ public class RelayFlightServer implements AutoCloseable {
     }
 
     private final class Producer extends NoOpFlightProducer {
+        private final BackpressureStrategy bpStrategy;
+
+        private Producer(BackpressureStrategy bpStrategy) {
+            this.bpStrategy = bpStrategy;
+        }
+
         @Override
         public void getStream(CallContext context, Ticket ticket,
                               ServerStreamListener listener) {
+            bpStrategy.register(listener);
             FlightStream s = client.getStream(ticket);
             final Runnable loadData = () -> {
                 VectorSchemaRoot root;
@@ -92,6 +114,7 @@ public class RelayFlightServer implements AutoCloseable {
                         listener.start(root);
                         first = false;
                     }
+                    bpStrategy.waitForListener(0);
                     listener.putNext();
                 }
                 listener.completed();

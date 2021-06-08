@@ -16,7 +16,13 @@ def main(port):
         fl.FlightDescriptor.for_command(json.dumps(request)))
     endpoint = info.endpoints[0]
     result: fl.FlightStreamReader = client.do_get(endpoint.ticket)
-    print(result.read_pandas())
+
+    i = 0
+    for batch in result:
+        i = i + 1
+        print(i)
+    print(batch.data.to_pandas())
+    #print(result.read_pandas())
 
 
 if __name__ == "__main__":
