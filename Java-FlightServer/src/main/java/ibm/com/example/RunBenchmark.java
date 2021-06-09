@@ -123,19 +123,15 @@ public class RunBenchmark {
             direct = true;
         }
 
-        Thread t1, t2 = null, t3;
+        Thread t1, t2, t3;
 
         MyServer s = new MyServer();
         t1 = new Thread(s);
         t1.start();
 
-        if (!direct) {
-            MyRelay r = new MyRelay();
-            t2 = new Thread(r);
-            t2.start();
-        } else {
-            System.out.println("No need to run relay server");
-        }
+        MyRelay r = new MyRelay();
+        t2 = new Thread(r);
+        t2.start();
 
         MyClient c = new MyClient(direct ? 12233 : 12232);
         t3 = new Thread(c);
@@ -143,8 +139,6 @@ public class RunBenchmark {
         t3.join();
 
         t1.interrupt();
-        if (!direct) {
-            t2.interrupt();
-        }
+        t2.interrupt();
     }
 }
