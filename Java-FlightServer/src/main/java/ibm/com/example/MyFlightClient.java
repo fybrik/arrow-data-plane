@@ -26,15 +26,22 @@ public class MyFlightClient {
         System.out.println(ticket);
 
         FlightStream s = client.getStream(ticket);
-	int i = 0;
+        int i = 0;
+        VectorSchemaRoot root = null;
+
+        long start = System.currentTimeMillis();
         while (s.next()) {
-            VectorSchemaRoot root = s.getRoot();
-	    i++;
+            root = s.getRoot();
+            i++;
             System.out.println(i);
             //System.out.println(root.getVector(0));
             //System.out.println(root.getVector(1));
             //System.out.println(root.getVector(2));
             //System.out.println(root.getVector(3));
         }
+        long finish = System.currentTimeMillis();
+        
+        System.out.println("Time spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
+        System.out.println("Throughput: " + i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0));
     }
 }
