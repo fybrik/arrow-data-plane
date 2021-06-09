@@ -40,8 +40,8 @@ public class MyFlightClient {
             //System.out.println(root.getVector(3));
         }
         long finish = System.currentTimeMillis();
-        
+
         System.out.println("Time spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
-        System.out.println("Throughput: " + i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0));
+        System.out.println("Throughput: " + (long)i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0));
     }
 }
