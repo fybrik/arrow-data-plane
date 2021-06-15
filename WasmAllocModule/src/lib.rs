@@ -1,6 +1,5 @@
 
 use std::sync::Arc;
-use arrow::array::ArrayRef;
 use std::os::raw::c_void;
 
 
