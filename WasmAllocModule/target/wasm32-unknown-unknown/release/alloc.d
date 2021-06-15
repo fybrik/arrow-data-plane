@@ -1,0 +1,1 @@
+/home/mohammad/arrow-data-plane/WasmAllocModule/target/wasm32-unknown-unknown/release/alloc.wasm: /home/mohammad/arrow-data-plane/WasmAllocModule/build.rs /home/mohammad/arrow-data-plane/WasmAllocModule/src/lib.rs
