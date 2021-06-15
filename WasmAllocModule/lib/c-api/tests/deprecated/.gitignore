@@ -1,0 +1,6 @@
+# ignore wasm-c-api binaries
+wasm-c-api-*
+test-*
+
+# Unignore files ending with `.c` (i.e. `wasm-c-api-wasi.c`)
+!*.c

@@ -1,0 +1,118 @@
+[package]
+name = "wasmer-cli"
+version = "1.0.2"
+description = "Wasmer CLI"
+categories = ["wasm", "command-line-interface"]
+keywords = ["wasm", "webassembly", "cli"]
+authors = ["Wasmer Engineering Team <engineering@wasmer.io>"]
+repository = "https://github.com/wasmerio/wasmer"
+license = "MIT"
+readme = "README.md"
+edition = "2018"
+default-run = "wasmer"
+build = "build.rs"
+
+[[bin]]
+name = "wasmer"
+path = "src/bin/wasmer.rs"
+doc = false
+
+[[bin]]
+name = "wasmer-headless"
+path = "src/bin/wasmer_headless.rs"
+doc = false
+required-features = ["headless"]
+
+[dependencies]
+wasmer = { version = "1.0.2", path = "../api", default-features = false }
+wasmer-compiler = { version = "1.0.2", path = "../compiler" }
+wasmer-compiler-cranelift = { version = "1.0.2", path = "../compiler-cranelift", optional = true }
+wasmer-compiler-singlepass = { version = "1.0.2", path = "../compiler-singlepass", optional = true }
+wasmer-compiler-llvm = { version = "1.0.2", path = "../compiler-llvm", optional = true }
+wasmer-emscripten = { version = "1.0.2", path = "../emscripten", optional = true }
+wasmer-engine = { version = "1.0.2", path = "../engine" }
+wasmer-engine-jit = { version = "1.0.2", path = "../engine-jit", optional = true }
+wasmer-engine-native = { version = "1.0.2", path = "../engine-native", optional = true }
+wasmer-engine-object-file = { version = "1.0.2", path = "../engine-object-file", optional = true }
+wasmer-vm = { version = "1.0.2", path = "../vm" }
+wasmer-wasi = { version = "1.0.2", path = "../wasi", default-features = false, optional = true }
+wasmer-wasi-experimental-io-devices = { version = "1.0.2", path = "../wasi-experimental-io-devices", optional = true }
+wasmer-wast = { version = "1.0.2", path = "../../tests/lib/wast", optional = true }
+wasmer-cache = { version = "1.0.2", path = "../cache", optional = true }
+wasmer-types = { version = "1.0.2", path = "../types" }
+atty = "0.2"
+colored = "2.0"
+anyhow = "1.0"
+clap = { version = "3.0.0-beta.2", features = ["suggestions", "derive", "cargo", "std", "color"], default-features = false }
+# For the function names autosuggestion
+distance = "0.4"
+# For the inspect subcommand
+bytesize = "1.0"
+cfg-if = "1.0"
+# For debug feature
+fern = { version = "0.6", features = ["colored"], optional = true }
+log = { version = "0.4", optional = true }
+tempfile = "3"
+
+[features]
+# Don't add the compiler features in default, please add them on the Makefile
+# since we might want to autoconfigure them depending on the availability on the host.
+default = [
+    "wat",
+    "wast",
+    "jit",
+    "native",
+    "object-file",
+    "cache",
+    "wasi",
+    "emscripten",
+]
+engine = []
+jit = [
+    "wasmer-engine-jit",
+    "engine",
+]
+native = [
+    "wasmer-engine-native",
+    "engine",
+]
+object-file = [
+    "wasmer-engine-object-file",
+    "engine",
+]
+cache = ["wasmer-cache"]
+wast = ["wasmer-wast"]
+wasi = ["wasmer-wasi"]
+emscripten = ["wasmer-emscripten"]
+wat = ["wasmer/wat"]
+compiler = [
+    "wasmer-compiler/translator",
+    "wasmer-engine-jit/compiler",
+    "wasmer-engine-native/compiler",
+    "wasmer-engine-object-file/compiler",
+]
+experimental-io-devices = [
+    "wasmer-wasi-experimental-io-devices",
+    "wasi"
+]
+singlepass = [
+    "wasmer-compiler-singlepass",
+    "compiler",
+]
+cranelift = [
+    "wasmer-compiler-cranelift",
+    "compiler",
+]
+# Enable Cranelift experimental x64 backend
+cranelift-experimental-x64 = [
+    "cranelift",
+    "wasmer-compiler-cranelift/experimental-x64",
+]
+llvm = [
+    "wasmer-compiler-llvm",
+    "compiler",
+]
+debug = ["fern", "log", "wasmer-wasi/logging"]
+disable-all-logging = ["wasmer-wasi/disable-all-logging"]
+headless = []
+headless-minimal = ["headless", "disable-all-logging", "wasi", "native", "jit"]

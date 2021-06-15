@@ -1,0 +1,2 @@
+cargo:rustc-cdylib-link-arg=--import-memory
+cargo:rustc-cdylib-link-arg=-zstack-size=0
