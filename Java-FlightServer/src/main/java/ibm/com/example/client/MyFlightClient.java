@@ -1,4 +1,4 @@
-package ibm.com.example;
+package ibm.com.example.client;
 
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;

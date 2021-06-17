@@ -1,4 +1,4 @@
-package ibm.com.example;
+package ibm.com.example.server;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.arrow.flight.*;

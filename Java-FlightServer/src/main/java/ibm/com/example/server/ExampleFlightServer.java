@@ -1,6 +1,7 @@
-package ibm.com.example;
+package ibm.com.example.server;
 
 import java.io.IOException;
+
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
