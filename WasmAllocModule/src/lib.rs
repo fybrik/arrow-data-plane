@@ -1,5 +1,4 @@
 
-use std::sync::Arc;
 use std::os::raw::c_void;
 
 
@@ -23,7 +22,6 @@ pub fn alloc(len: i64) -> *mut c_void {
 #[no_mangle]
 pub unsafe fn dealloc(ptr: i64, size: i64) {
     let data = Vec::from_raw_parts(ptr as *mut u8, size as usize, size as usize);
-
     std::mem::drop(data);
 }
 
