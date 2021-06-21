@@ -1,4 +1,4 @@
-package ibm.com.example.server;
+package org.m4d.adp.flight_server;
 
 import java.io.IOException;
 

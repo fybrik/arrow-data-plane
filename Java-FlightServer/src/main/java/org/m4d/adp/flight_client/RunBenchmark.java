@@ -1,8 +1,8 @@
-package ibm.com.example.client;
+package org.m4d.adp.flight_client;
 
-import ibm.com.example.server.ExampleFlightServer;
-import ibm.com.example.server.ExampleProducer;
-import ibm.com.example.server.RelayProducer;
+import org.m4d.adp.flight_server.ExampleFlightServer;
+import org.m4d.adp.flight_server.ExampleProducer;
+import org.m4d.adp.flight_server.RelayProducer;
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;

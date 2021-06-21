@@ -1,4 +1,4 @@
-package ibm.com.example.client;
+package org.m4d.adp.flight_client;
 
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;

@@ -1,10 +1,11 @@
-package ibm.com.example.server;
+package org.m4d.adp.flight_server;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.arrow.flight.*;
 import org.apache.arrow.flight.perf.impl.PerfOuterClass;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -15,57 +16,52 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class RelayProducer extends NoOpFlightProducer {
-    private final BackpressureStrategy bpStrategy;
-    private boolean isNonBlocking = false;
-    private final FlightClient client;
+public class ExampleProducer extends NoOpFlightProducer {
     private final Location location;
+    private final BufferAllocator allocator;
+    private final int RecordsPerBatch = 1024*1024;
+    private final VectorSchemaRoot constVectorSchemaRoot;
+    private boolean isNonBlocking = false;
 
-    private RelayProducer(BackpressureStrategy bpStrategy, Location location, Location remote_location, BufferAllocator allocator) {
-        this.bpStrategy = bpStrategy;
+    public ExampleProducer(Location location, BufferAllocator allocator) {
         this.location = location;
-        this.client = FlightClient.builder()
-                .allocator(allocator)
-                .location(remote_location)
-                .build();
+        this.allocator = allocator;
+        this.constVectorSchemaRoot = getConstVectorSchemaRoot();
     }
 
-    public RelayProducer(Location location, Location remote_location, BufferAllocator allocator) {
-        this(new BackpressureStrategy() {
-            private FlightProducer.ServerStreamListener listener;
+    private VectorSchemaRoot getConstVectorSchemaRoot() {
+        final Schema schema = new Schema(ImmutableList.of(
+                Field.nullable("a", Types.MinorType.BIGINT.getType()),
+                Field.nullable("b", Types.MinorType.BIGINT.getType()),
+                Field.nullable("c", Types.MinorType.BIGINT.getType()),
+                Field.nullable("d", Types.MinorType.BIGINT.getType())
+        ));
+        //Schema schema = Schema.deserialize(ByteBuffer.wrap(perf.getSchema().toByteArray()));
+        VectorSchemaRoot root = VectorSchemaRoot.create(schema, allocator);
+        //root.allocateNew();
+        BigIntVector a = (BigIntVector) root.getVector("a");
+        BigIntVector b = (BigIntVector) root.getVector("b");
+        BigIntVector c = (BigIntVector) root.getVector("c");
+        BigIntVector d = (BigIntVector) root.getVector("d");
 
-            @Override
-            public void register(FlightProducer.ServerStreamListener listener) {
-                this.listener = listener;
-            }
-
-            @Override
-            public WaitResult waitForListener(long timeout) {
-                while (!listener.isReady() && !listener.isCancelled()) {
-                    // busy wait
-                }
-                return WaitResult.READY;
-            }
-        }, location, remote_location, allocator);
+        for (int j = 0; j < this.RecordsPerBatch; j++) {
+            a.setSafe(j, j);
+            b.setSafe(j, j);
+            c.setSafe(j, j);
+            d.setSafe(j, j);
+        }
+        root.setRowCount(this.RecordsPerBatch);
+        return root;
     }
 
     @Override
-    public void getStream(CallContext context, Ticket ticket,
-                          ServerStreamListener listener) {
-        bpStrategy.register(listener);
-        FlightStream s = client.getStream(ticket);
+    public void getStream(FlightProducer.CallContext context, Ticket ticket,
+                          FlightProducer.ServerStreamListener listener) {
         final Runnable loadData = () -> {
-            VectorSchemaRoot root;
             listener.setUseZeroCopy(false);
-            boolean first = true;
-            while (s.next()) {
-                root = s.getRoot();
-                if (first) {
-                    listener.start(root);
-                    first = false;
-                }
-                bpStrategy.waitForListener(0);
-                //System.out.println("Relay putNext()");
+            listener.start(this.constVectorSchemaRoot);
+            for (int i=0; i<1000; i++) {
+                //System.out.println("Example putNext()");
                 listener.putNext();
             }
             listener.completed();
