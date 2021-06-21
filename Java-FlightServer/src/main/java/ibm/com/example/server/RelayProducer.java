@@ -56,7 +56,7 @@ public class RelayProducer extends NoOpFlightProducer {
         FlightStream s = client.getStream(ticket);
         final Runnable loadData = () -> {
             VectorSchemaRoot root;
-            listener.setUseZeroCopy(true);
+            listener.setUseZeroCopy(false);
             boolean first = true;
             while (s.next()) {
                 root = s.getRoot();

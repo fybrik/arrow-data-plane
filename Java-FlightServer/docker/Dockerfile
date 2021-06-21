@@ -1,5 +1,8 @@
 FROM openjdk:11
 
+RUN apt-get update \
+    && apt-get install -y time
+
 COPY Java-FlightServer-1.0-SNAPSHOT-all.jar /root
 COPY logging.xml /root
 COPY run_servers.sh /root
