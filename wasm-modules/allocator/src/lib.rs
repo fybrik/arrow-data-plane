@@ -1,6 +1,10 @@
 
 use std::os::raw::c_void;
+extern crate wee_alloc;
 
+// Use `wee_alloc` as the global allocator.
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 
 #[no_mangle]
@@ -24,5 +28,3 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
     let data = Vec::from_raw_parts(ptr as *mut u8, size as usize, size as usize);
     std::mem::drop(data);
 }
-
-
