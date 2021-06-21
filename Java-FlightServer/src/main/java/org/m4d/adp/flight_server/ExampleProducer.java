@@ -58,7 +58,7 @@ public class ExampleProducer extends NoOpFlightProducer {
     public void getStream(FlightProducer.CallContext context, Ticket ticket,
                           FlightProducer.ServerStreamListener listener) {
         final Runnable loadData = () -> {
-            listener.setUseZeroCopy(false);
+            listener.setUseZeroCopy(true);
             listener.start(this.constVectorSchemaRoot);
             for (int i=0; i<1000; i++) {
                 //System.out.println("Example putNext()");
