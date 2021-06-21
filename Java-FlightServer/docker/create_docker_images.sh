@@ -3,7 +3,7 @@
 if [ ! -f classes.tar.gz ]
   then echo creating tgz file
   cd ../build/classes/java/main/
-  tar cvfz ../../../../docker/classes.tar.gz ibm/
+  tar cvfz ../../../../docker/classes.tar.gz org/
   cd -
 fi
 
