@@ -1,12 +1,5 @@
 #!/bin/sh
 
-if [ ! -f classes.tar.gz ]
-  then echo creating tgz file
-  cd ../build/classes/java/main/
-  tar cvfz ../../../../docker/classes.tar.gz org/
-  cd -
-fi
-
 if [ ! -f logging.xml ]
   then cp ../logging.xml .
 fi

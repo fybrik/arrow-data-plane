@@ -3,4 +3,3 @@
 build
 docker/Java-FlightServer-1.0-SNAPSHOT-all.jar
 docker/logging.xml
-docker/classes.tar.gz
