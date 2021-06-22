@@ -45,7 +45,7 @@ public class RunBenchmark {
             final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
             final Location location = Location.forGrpcInsecure("localhost", 12232);
             final Location remote_location = Location.forGrpcInsecure("localhost", 12233);
-            final NoOpFlightProducer producer = new RelayProducer(location, remote_location, a);
+            final NoOpFlightProducer producer = new RelayProducer(location, remote_location, a, false);
             final ExampleFlightServer efs = new ExampleFlightServer(a, location, producer);
             try {
                 efs.start();

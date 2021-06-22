@@ -5,6 +5,7 @@ import org.apache.arrow.flight.*;
 import org.apache.arrow.flight.perf.impl.PerfOuterClass;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -16,12 +17,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class RelayProducer extends NoOpFlightProducer {
+    BufferAllocator allocator;
+    private boolean transform = false;
     private final BackpressureStrategy bpStrategy;
     private boolean isNonBlocking = false;
     private final FlightClient client;
     private final Location location;
+    private final BigIntVector constVec;
+    private int RecordsPerBatch = 1024*1024;
 
-    private RelayProducer(BackpressureStrategy bpStrategy, Location location, Location remote_location, BufferAllocator allocator) {
+    private BigIntVector getConstIntVector() {
+        BigIntVector c = new BigIntVector("a", allocator);
+        for (int j = 0; j < this.RecordsPerBatch; j++) {
+            c.setSafe(j, 13);
+        }
+        c.setValueCount(this.RecordsPerBatch);
+        return c;
+    }
+
+    private RelayProducer(BackpressureStrategy bpStrategy, Location location, Location remote_location,
+                          BufferAllocator allocator, boolean transform) {
+        this.transform = transform;
+        this.allocator = allocator;
+        this.constVec = getConstIntVector();
         this.bpStrategy = bpStrategy;
         this.location = location;
         this.client = FlightClient.builder()
@@ -30,7 +48,7 @@ public class RelayProducer extends NoOpFlightProducer {
                 .build();
     }
 
-    public RelayProducer(Location location, Location remote_location, BufferAllocator allocator) {
+    public RelayProducer(Location location, Location remote_location, BufferAllocator allocator, boolean transform) {
         this(new BackpressureStrategy() {
             private FlightProducer.ServerStreamListener listener;
 
@@ -46,7 +64,12 @@ public class RelayProducer extends NoOpFlightProducer {
                 }
                 return WaitResult.READY;
             }
-        }, location, remote_location, allocator);
+        }, location, remote_location, allocator, transform);
+    }
+
+    private VectorSchemaRoot transformVectorSchemaRoot(VectorSchemaRoot v) {
+        v = v.removeVector(0);
+        return v.addVector(0, this.constVec);
     }
 
     @Override
@@ -60,6 +83,9 @@ public class RelayProducer extends NoOpFlightProducer {
             boolean first = true;
             while (s.next()) {
                 root = s.getRoot();
+                if (transform) {
+                    root = transformVectorSchemaRoot(root);
+                }
                 if (first) {
                     listener.start(root);
                     first = false;

@@ -37,7 +37,7 @@ public class ExampleFlightServer implements AutoCloseable {
      *  Main method starts the server listening to localhost:12233.
      */
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
+        if ((args.length < 1) || (args.length > 2)) {
             System.out.println("Need single argument: either 'example' or 'relay'");
             System.exit(-1);
         }
@@ -47,8 +47,12 @@ public class ExampleFlightServer implements AutoCloseable {
         }
 
         boolean relay = false;
+        boolean transform = false;
         if (args[0].equals("relay")) {
             relay = true;
+            if (args.length == 2) {
+                transform = Boolean.valueOf(args[1]);
+            }
         }
 
         final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
@@ -57,7 +61,7 @@ public class ExampleFlightServer implements AutoCloseable {
         if (relay) {
             location = Location.forGrpcInsecure("localhost", 12232);
             Location remote_location = Location.forGrpcInsecure("localhost", 12233);
-            producer = new RelayProducer(location, remote_location, a);
+            producer = new RelayProducer(location, remote_location, a, transform);
         } else {
             location = Location.forGrpcInsecure("localhost", 12233);
             producer = new ExampleProducer(location, a);
