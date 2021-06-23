@@ -78,17 +78,33 @@ public class RelayProducer extends NoOpFlightProducer {
         bpStrategy.register(listener);
         FlightStream s = client.getStream(ticket);
         final Runnable loadData = () -> {
-            VectorSchemaRoot root;
-            listener.setUseZeroCopy(true);
+            VectorSchemaRoot root_in;
+            VectorSchemaRoot root_out = null;
+
             boolean first = true;
             while (s.next()) {
-                root = s.getRoot();
-                if (transform) {
-                    root = transformVectorSchemaRoot(root);
-                }
+                root_in = s.getRoot();
                 if (first) {
-                    listener.start(root);
+                    root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
+                    listener.setUseZeroCopy(false);
+                    listener.start(root_out);
                     first = false;
+                }
+                if (transform) {
+                    root_out = transformVectorSchemaRoot(root_in);
+                } else {
+                    root_out.allocateNew();
+                    int num_columns = root_in.getFieldVectors().size();
+                    int num_rows = root_in.getRowCount();
+                    root_out.setRowCount(num_rows);
+
+                    for (int i=0; i<num_columns; i++) {
+                        BigIntVector v_out = (BigIntVector)root_out.getVector(i);
+                        BigIntVector v_in = (BigIntVector)root_in.getVector(i);
+                        for (int j = 0; j < num_rows; j++) {
+                            v_out.setSafe(j, v_in.get(j));
+                        }
+                    }
                 }
                 bpStrategy.waitForListener(0);
                 //System.out.println("Relay putNext()");
