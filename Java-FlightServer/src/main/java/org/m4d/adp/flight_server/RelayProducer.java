@@ -6,21 +6,20 @@ import org.apache.arrow.flight.perf.impl.PerfOuterClass;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class RelayProducer extends NoOpFlightProducer {
     BufferAllocator allocator;
     private boolean transform = false;
     private final BackpressureStrategy bpStrategy;
-    private boolean isNonBlocking = false;
     private final FlightClient client;
     private final Location location;
     private final BigIntVector constVec;
@@ -77,49 +76,32 @@ public class RelayProducer extends NoOpFlightProducer {
                           ServerStreamListener listener) {
         bpStrategy.register(listener);
         FlightStream s = client.getStream(ticket);
-        final Runnable loadData = () -> {
-            VectorSchemaRoot root_in;
-            VectorSchemaRoot root_out = null;
+        VectorSchemaRoot root_in;
+        VectorSchemaRoot root_out = null;
+        VectorLoader loader = null;
+        VectorUnloader unloader = null;
 
-            boolean first = true;
-            while (s.next()) {
-                root_in = s.getRoot();
-                if (first) {
-                    root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
-                    listener.setUseZeroCopy(false);
-                    listener.start(root_out);
-                    first = false;
-                }
-                if (transform) {
-                    root_out = transformVectorSchemaRoot(root_in);
-                } else {
-                    root_out.allocateNew();
-                    int num_columns = root_in.getFieldVectors().size();
-                    int num_rows = root_in.getRowCount();
-                    root_out.setRowCount(num_rows);
-
-                    for (int i=0; i<num_columns; i++) {
-                        BigIntVector v_out = (BigIntVector)root_out.getVector(i);
-                        BigIntVector v_in = (BigIntVector)root_in.getVector(i);
-                        for (int j = 0; j < num_rows; j++) {
-                            v_out.setSafe(j, v_in.get(j));
-                        }
-                    }
-                }
-                bpStrategy.waitForListener(0);
-                //System.out.println("Relay putNext()");
-                listener.putNext();
+        boolean first = true;
+        while (s.next()) {
+            root_in = s.getRoot();
+            if (first) {
+                root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
+                loader = new VectorLoader(root_out);
+                listener.setUseZeroCopy(false);
+                listener.start(root_out);
+                first = false;
             }
-            listener.completed();
-        };
+            if (transform) {
+                root_in = transformVectorSchemaRoot(root_in);
+            }
 
-        if (!isNonBlocking) {
-            loadData.run();
-        } else {
-            final ExecutorService service = Executors.newSingleThreadExecutor();
-            service.submit(loadData);
-            service.shutdown();
+            unloader = new VectorUnloader(root_in);
+            loader.load(unloader.getRecordBatch());
+
+            bpStrategy.waitForListener(0);
+            listener.putNext();
         }
+        listener.completed();
     }
 
     @Override
