@@ -1,4 +1,5 @@
 use jni::sys::jlong;
+use wasmer::{Instance, NativeFunc};
 use std::ops::Deref;
 
 
@@ -42,4 +43,10 @@ impl<Kind> Deref for Pointer<Kind> {
     fn deref(&self) -> &Self::Target {
         &self.value
     }
+}
+
+pub struct WasmModule {
+    pub instance: Pointer<Instance>,
+    pub alloc_func: NativeFunc<i64, i32>,
+    pub dealloc_func: NativeFunc<(i64, i64)>,
 }
