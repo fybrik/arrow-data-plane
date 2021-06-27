@@ -16,23 +16,23 @@ pub extern fn Java_ibm_com_example_Adder_wasmInstance(jre: JNIEnv, _class: *cons
 }
 
 #[no_mangle]
-pub extern fn Java_ibm_com_example_Adder_wasmDrop(_jre: JNIEnv, _class: *const c_void, instance_ptr: jptr){
-    wasmDrop(instance_ptr);
+pub extern fn Java_ibm_com_example_Adder_wasmDrop(_jre: JNIEnv, _class: *const c_void, wasm_module_ptr: jptr){
+    wasmDrop(wasm_module_ptr);
 }
 
 
 #[no_mangle]
-pub extern fn Java_ibm_com_example_Adder_wasmAlloc(_jre: JNIEnv, _class: *const c_void, instance_ptr: jptr, size: jlong) -> jlong {
-    wasmAlloc(instance_ptr, size)
+pub extern fn Java_ibm_com_example_Adder_wasmAlloc(_jre: JNIEnv, _class: *const c_void, wasm_module_ptr: jptr, size: jlong) -> jlong {
+    wasmAlloc(wasm_module_ptr, size)
 }
 
 #[no_mangle]
-pub extern fn Java_ibm_com_example_Adder_wasmMemPtr(_jre: JNIEnv, _class: *const c_void, instance_ptr: jptr) -> jlong {
-    wasmMemPtr(instance_ptr)
+pub extern fn Java_ibm_com_example_Adder_wasmMemPtr(_jre: JNIEnv, _class: *const c_void, wasm_module_ptr: jptr) -> jlong {
+    wasmMemPtr(wasm_module_ptr)
 }
 
 
 #[no_mangle]
-pub extern fn Java_ibm_com_example_Adder_wasmDealloc(_jre: JNIEnv, _class: *const c_void, instance_ptr: jptr, offset: jlong, size: jlong){
-    wasmDealloc(instance_ptr, offset, size);
+pub extern fn Java_ibm_com_example_Adder_wasmDealloc(_jre: JNIEnv, _class: *const c_void, wasm_module_ptr: jptr, offset: jlong, size: jlong){
+    wasmDealloc(wasm_module_ptr, offset, size);
 }
