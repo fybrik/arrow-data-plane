@@ -2,6 +2,14 @@ plugins {
     id 'java'
 }
 
+sourceSets {
+    main {
+        java {
+            srcDirs 'src'
+        }
+    }
+ }
+
 group 'org.example'
 version '1.0-SNAPSHOT'
 
