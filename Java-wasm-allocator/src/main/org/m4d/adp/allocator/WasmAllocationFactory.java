@@ -11,7 +11,6 @@ public class WasmAllocationFactory implements AllocationManager.Factory, AutoClo
 
     @Override
     public AllocationManager create(BufferAllocator accountingAllocator, long size) {
-        System.out.println("create");
         return new WasmAllocationManager(instancePtr, accountingAllocator, size);
     }
 
@@ -28,7 +27,6 @@ public class WasmAllocationFactory implements AllocationManager.Factory, AutoClo
 
     @Override
     public void close() throws Exception {
-        System.out.println("close");
         AllocatorInterface.wasmDrop(instancePtr);
         
     }

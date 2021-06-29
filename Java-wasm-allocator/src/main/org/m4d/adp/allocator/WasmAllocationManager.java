@@ -29,7 +29,6 @@ public final class WasmAllocationManager extends AllocationManager {
 
   @Override
   protected void release0() {
-    System.out.println("release WasmAllocator");
     AllocatorInterface.wasmDealloc(instancePtr, allocatedAddress, allocatedSize);
   }
 
@@ -40,7 +39,6 @@ public final class WasmAllocationManager extends AllocationManager {
 
   @Override
   protected long memoryAddress() {
-    System.out.println("memoryAddress");
     return allocatedAddress + wasmMemoryAddress;
   }
 }
