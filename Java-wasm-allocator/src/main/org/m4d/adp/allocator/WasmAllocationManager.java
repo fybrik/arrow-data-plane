@@ -34,7 +34,7 @@ public final class WasmAllocationManager extends AllocationManager {
     }
 
     /**
-     * Release memory chunk that is managed by this WasmAllocationManager.
+     * Release the memory chunk that is managed by this WasmAllocationManager.
      */
     @Override
     protected void release0() {
@@ -50,7 +50,7 @@ public final class WasmAllocationManager extends AllocationManager {
     }
 
     /**
-     * Get the address address pointing to the fist byte of the memory chunk that is managed by this WasmAllocationManager.
+     * Get the address pointing to the first byte of the memory chunk that is managed by this WasmAllocationManager.
      */
     @Override
     protected long memoryAddress() {
