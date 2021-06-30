@@ -5,9 +5,13 @@ import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.ReferenceManager;
 
-public class WasmAllocationFactory implements AllocationManager.Factory, AutoCloseable{
-    long instancePtr = AllocatorInterface.wasmInstance("lib/hello.wasm");
 
+/**
+ * A factory class for creating WasmAllocationManager.
+ */
+public class WasmAllocationFactory implements AllocationManager.Factory, AutoCloseable{
+    // Pointer to an instance of the WASM module that is used to allocate and deallocate memory.
+    long instancePtr = AllocatorInterface.wasmInstance("lib/hello.wasm");
 
     @Override
     public AllocationManager create(BufferAllocator accountingAllocator, long size) {

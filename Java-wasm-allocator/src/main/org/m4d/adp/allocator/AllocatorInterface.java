@@ -5,7 +5,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 
-
+/**
+ * AllocatorInterface is used to define functions which are implemented in a JNI library.
+ * These functions are used by WasmAllocationManager in order to manage memory allocations using a WASM module.
+ */
 public class AllocatorInterface {
 
     static{

@@ -4,6 +4,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.m4d.adp.WasmInterface;
 
+/**
+ * WasmInterface is used to load a JNI library. 
+ */
 public class WasmInterface {
 
     public static final boolean LOADED_EMBEDDED_LIBRARY;
