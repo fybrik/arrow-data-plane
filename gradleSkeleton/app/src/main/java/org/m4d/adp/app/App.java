@@ -3,19 +3,42 @@
  */
 package org.m4d.adp.app;
 
+import org.m4d.adp.allocator.WasmAllocationManager;
 import org.m4d.adp.list.LinkedList;
+
 
 import static org.m4d.adp.utilities.StringUtils.join;
 import static org.m4d.adp.utilities.StringUtils.split;
 import static org.m4d.adp.app.MessageUtils.getMessage;
 
+import org.apache.arrow.memory.AllocationManager;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.BitVector;
 import org.apache.commons.text.WordUtils;
 
 public class App {
+    private static BufferAllocator createWasmAllocator(AllocationManager.Factory factory) {
+        return new RootAllocator(RootAllocator.configBuilder().allocationManagerFactory(factory)
+            .build());
+    }
     public static void main(String[] args) {
         LinkedList tokens;
         tokens = split(getMessage());
         String result = join(tokens);
         System.out.println(WordUtils.capitalize(result));
+
+        try(BufferAllocator allocator = createWasmAllocator(WasmAllocationManager.FACTORY)){
+            BitVector bitVector = new BitVector("boolean", allocator);
+            bitVector.allocateNew();
+            for (int i = 0; i < 10; i++) {
+                bitVector.setSafe(i, i % 2 == 0 ? 0 : 1);
+            }
+            bitVector.setValueCount(10);
+            int x = bitVector.get(3);
+            System.out.println("gg " + x);
+            bitVector.close();
+        }
+
     }
 }

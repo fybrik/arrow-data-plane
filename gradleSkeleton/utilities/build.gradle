@@ -7,5 +7,6 @@ plugins {
 }
 
 dependencies {
+    api project(':java-wasm-allocator')
     api project(':list')
 }

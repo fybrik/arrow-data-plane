@@ -8,4 +8,4 @@
  */
 
 rootProject.name = 'adp'
-include('app', 'list', 'utilities')
+include('app', 'list', 'utilities', 'java-wasm-allocator')
