@@ -10,16 +10,12 @@ import org.apache.arrow.memory.BufferAllocator;
  */
 
 public final class WasmAllocationManager extends AllocationManager {
-
-    public static final WasmAllocationFactory FACTORY = new WasmAllocationFactory();
         
     private final long allocatedSize;
 
     private final long allocatedAddress;
 
     private static long instancePtr;
-
-    private final long wasmMemoryAddress;
 
     /**
      * A constructor of WasmAllocationManager that allocated a memory chunk with the requested size in a WASM module memory
@@ -28,7 +24,6 @@ public final class WasmAllocationManager extends AllocationManager {
     WasmAllocationManager(long instancePtr, BufferAllocator accountingAllocator, long requestedSize) {
         super(accountingAllocator);
         WasmAllocationManager.instancePtr = instancePtr;
-        wasmMemoryAddress = AllocatorInterface.wasmMemPtr(instancePtr);
         allocatedAddress = AllocatorInterface.wasmAlloc(instancePtr,requestedSize);
         allocatedSize = requestedSize;
     }
@@ -54,6 +49,7 @@ public final class WasmAllocationManager extends AllocationManager {
      */
     @Override
     protected long memoryAddress() {
+        long wasmMemoryAddress = AllocatorInterface.wasmMemPtr(instancePtr);
         return allocatedAddress + wasmMemoryAddress;
     }
 }
