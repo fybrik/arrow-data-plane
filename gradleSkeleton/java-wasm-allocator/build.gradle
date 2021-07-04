@@ -4,85 +4,12 @@
 
 plugins {
     id 'org.m4d.adp.java-library-conventions'
-    // id 'org.m4d.adp.java-application-conventions'
-    // id 'java'
 }
-
-
-repositories {
-    mavenCentral()
-    flatDir {
-       dirs 'libs'
-   }
-}
-
-// dependencies {
-//     implementation 'org.apache.arrow:arrow-vector:4.0.0'
-//     implementation 'org.apache.arrow:arrow-tools:4.0.0'
-//     implementation 'org.apache.arrow:flight-core:4.0.0'
-//     // implementation 'org.wasmer:wasmer-jni-amd64-linux:0.3.0'
-// }
-
 
 
 dependencies {
-    // testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    // testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
-    // implementation 'org.apache.commons:commons-text'
-    // implementation project(':utilities')
     implementation 'org.apache.arrow:arrow-vector:4.0.0'
     implementation 'org.apache.arrow:arrow-tools:4.0.0'
     implementation 'org.apache.arrow:flight-core:4.0.0'
 }
 
-// application {
-//     // Define the main class for the application.
-//     mainClass = 'org.m4d.adp.app.App'
-// }
-
-
-sourceSets {
-    main {
-        java {
-            srcDirs 'flight-client'
-            srcDirs 'flight-server'
-        }
-    }
- }
-
-group 'org.example'
-version '1.0-SNAPSHOT'
-
-repositories {
-    mavenCentral()
-}
-
-
-test {
-    useJUnitPlatform()
-}
-
-jar {
-  manifest {
-    attributes(
-      'Main-Class': 'my.project.main',
-    )
-  }
-}
-
-task fatJar(type: Jar) {
-  manifest.from jar.manifest
-  classifier = 'all'
-  from {
-    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-  } {
-    exclude "META-INF/*.SF"
-    exclude "META-INF/*.DSA"
-    exclude "META-INF/*.RSA"
-  }
-  with jar
-}
-
-artifacts {
-    archives fatJar
-}
