@@ -19,7 +19,6 @@ import java.util.List;
 public class RelayProducer extends NoOpFlightProducer {
     BufferAllocator allocator;
     private boolean transform = false;
-    private final BackpressureStrategy bpStrategy;
     private final FlightClient client;
     private final Location location;
     private final BigIntVector constVec;
@@ -34,36 +33,16 @@ public class RelayProducer extends NoOpFlightProducer {
         return c;
     }
 
-    private RelayProducer(BackpressureStrategy bpStrategy, Location location, Location remote_location,
+    public RelayProducer(Location location, Location remote_location,
                           BufferAllocator allocator, boolean transform) {
         this.transform = transform;
         this.allocator = allocator;
         this.constVec = getConstIntVector();
-        this.bpStrategy = bpStrategy;
         this.location = location;
         this.client = FlightClient.builder()
                 .allocator(allocator)
                 .location(remote_location)
                 .build();
-    }
-
-    public RelayProducer(Location location, Location remote_location, BufferAllocator allocator, boolean transform) {
-        this(new BackpressureStrategy() {
-            private FlightProducer.ServerStreamListener listener;
-
-            @Override
-            public void register(FlightProducer.ServerStreamListener listener) {
-                this.listener = listener;
-            }
-
-            @Override
-            public WaitResult waitForListener(long timeout) {
-                while (!listener.isReady() && !listener.isCancelled()) {
-                    // busy wait
-                }
-                return WaitResult.READY;
-            }
-        }, location, remote_location, allocator, transform);
     }
 
     private VectorSchemaRoot transformVectorSchemaRoot(VectorSchemaRoot v) {
@@ -74,7 +53,6 @@ public class RelayProducer extends NoOpFlightProducer {
     @Override
     public void getStream(CallContext context, Ticket ticket,
                           ServerStreamListener listener) {
-        bpStrategy.register(listener);
         FlightStream s = client.getStream(ticket);
         VectorSchemaRoot root_in;
         VectorSchemaRoot root_out = null;
@@ -98,7 +76,6 @@ public class RelayProducer extends NoOpFlightProducer {
             unloader = new VectorUnloader(root_in);
             loader.load(unloader.getRecordBatch());
 
-            bpStrategy.waitForListener(0);
             listener.putNext();
         }
         listener.completed();
