@@ -59,11 +59,11 @@ public class ExampleFlightServer implements AutoCloseable {
         final Location location;
         final NoOpFlightProducer producer;
         if (relay) {
-            location = Location.forGrpcInsecure("localhost", 12232);
-            Location remote_location = Location.forGrpcInsecure("localhost", 12233);
+            location = Location.forGrpcInsecure("0.0.0.0", 12232);
+            Location remote_location = Location.forGrpcInsecure("0.0.0.0", 12233);
             producer = new RelayProducer(location, remote_location, a, transform);
         } else {
-            location = Location.forGrpcInsecure("localhost", 12233);
+            location = Location.forGrpcInsecure("0.0.0.0", 12233);
             producer = new ExampleProducer(location, a);
         }
 
