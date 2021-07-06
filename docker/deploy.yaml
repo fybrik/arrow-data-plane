@@ -1,0 +1,108 @@
+##################################################################################################
+# Servers
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  labels:
+    app: server
+    service: server
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 12233
+    targetPort: 12233
+    name: direct
+  - port: 12232
+    targetPort: 12232
+    name: relay
+  selector:
+    app: server
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: server
+  labels:
+    account: server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-v1
+  labels:
+    app: server
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: server
+        version: v1
+    spec:
+      serviceAccountName: server
+      serviceAccount: server
+      containers:
+      - name: server
+        image: example_server:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 12232
+        - containerPort: 12233
+---
+##################################################################################################
+# Client
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: client
+  labels:
+    app: client
+    service: client
+spec:
+  ports:
+  - port: 8815
+    name: http
+  selector:
+    app: client
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: serviceaccount-client
+  labels:
+    account: client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-v1
+  labels:
+    app: client
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: client
+        version: v1
+    spec:
+      serviceAccountName: serviceaccount-client
+      containers:
+      - name: client
+        image: example_server:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8815
