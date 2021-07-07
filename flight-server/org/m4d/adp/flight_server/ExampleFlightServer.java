@@ -37,10 +37,18 @@ public class ExampleFlightServer implements AutoCloseable {
      *  Main method starts the server listening to localhost:12233.
      */
     public static void main(String[] args) throws Exception {
-        if ((args.length < 1) || (args.length > 2)) {
-            System.out.println("Need single argument: either 'example' or 'relay'");
+        if ((args.length != 3) && (args.length != 6)) {
+            System.out.println("Arguments are either:");
+            System.out.println("\texample host port");
+            System.out.println("\trelay transformation(true/false) host port remote_host remote_port");
             System.exit(-1);
         }
+
+        String host;
+        int port;
+        String remote_host = null;
+        int remote_port = 0;
+
         if (!args[0].equals("example") && !args[0].equals("relay")) {
             System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + args[0]);
             System.exit(-1);
@@ -50,20 +58,25 @@ public class ExampleFlightServer implements AutoCloseable {
         boolean transform = false;
         if (args[0].equals("relay")) {
             relay = true;
-            if (args.length == 2) {
-                transform = Boolean.valueOf(args[1]);
-            }
+            transform = Boolean.valueOf(args[1]);
+            host = args[2];
+            port = Integer.valueOf(args[3]);
+            remote_host = args[4];
+            remote_port = Integer.valueOf(args[5]);
+        } else {
+            host = args[1];
+            port = Integer.valueOf(args[2]);
         }
 
         final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
         final Location location;
         final NoOpFlightProducer producer;
         if (relay) {
-            location = Location.forGrpcInsecure("localhost", 12232);
-            Location remote_location = Location.forGrpcInsecure("localhost", 12233);
+            location = Location.forGrpcInsecure(host, port);
+            Location remote_location = Location.forGrpcInsecure(remote_host, remote_port);
             producer = new RelayProducer(location, remote_location, a, transform);
         } else {
-            location = Location.forGrpcInsecure("localhost", 12233);
+            location = Location.forGrpcInsecure(host, port);
             producer = new ExampleProducer(location, a);
         }
 
