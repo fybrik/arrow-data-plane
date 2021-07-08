@@ -6,6 +6,13 @@ import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.util.AutoCloseables;
+import org.apache.arrow.memory.AllocationManager;
+import org.m4d.adp.allocator.WasmAllocationManager;
+import org.m4d.adp.allocator.WasmAllocationFactory;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
 
 /**
  * An Example Flight Server that provides access to the InMemoryStore. Used for integration testing.
@@ -33,29 +40,52 @@ public class ExampleFlightServer implements AutoCloseable {
         flightServer.awaitTermination();
     }
 
+    private static BufferAllocator createWasmAllocator(AllocationManager.Factory factory) {
+        return new RootAllocator(RootAllocator.configBuilder().allocationManagerFactory(factory)
+            .build());
+    }
+
     /**
      *  Main method starts the server listening to localhost:12233.
      */
     public static void main(String[] args) throws Exception {
-        if ((args.length < 1) || (args.length > 2)) {
-            System.out.println("Need single argument: either 'example' or 'relay'");
-            System.exit(-1);
+        BufferAllocator a;
+        CommandLineParser parser = new DefaultParser();
+        Options options = new Options();
+        options.addOption("alloc", true, "Allocation type");
+        options.addOption("prod", true, "Producer type");
+        CommandLine line = parser.parse( options, args );
+        if(line.hasOption("alloc")){
+            String[] argVal = line.getOptionValues("alloc");
+            if(argVal[0].equals("wasm")) {
+                WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
+                a = createWasmAllocator(wasmAllocationFactory);
+            }else {
+                a = new RootAllocator(Long.MAX_VALUE);
+            }
+        }else{
+            a = new RootAllocator(Long.MAX_VALUE);
         }
-        if (!args[0].equals("example") && !args[0].equals("relay")) {
-            System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + args[0]);
-            System.exit(-1);
-        }
-
+        
         boolean relay = false;
         boolean transform = false;
-        if (args[0].equals("relay")) {
-            relay = true;
-            if (args.length == 2) {
-                transform = Boolean.valueOf(args[1]);
+        if (line.hasOption("prod")) {
+            String[] argVal = line.getOptionValues("prod");
+            if (!argVal[0].equals("example") && !argVal[0].equals("relay")) {
+                System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + argVal[0]);
+                System.exit(-1);
             }
+            else if (argVal[0].equals("relay")) {
+                relay = true;
+                if (argVal.length == 2) {
+                    transform = Boolean.valueOf(argVal[1]);
+                }
+            }
+        }else {
+            System.out.println("Need a 'prod' argument: either 'example' or 'relay'");
+            System.exit(-1);
         }
-
-        final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
+        
         final Location location;
         final NoOpFlightProducer producer;
         if (relay) {
