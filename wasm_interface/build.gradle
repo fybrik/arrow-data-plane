@@ -1,0 +1,48 @@
+plugins {
+    id "java"
+    id "java-library"
+}
+
+allprojects {
+    group "wasm.adp"
+}
+
+
+sourceSets {
+    main {
+        resources {
+            srcDirs = ["$buildDir/toArtifact"]
+        }
+    }
+}
+
+
+jar {
+    manifest {
+        attributes("Implementation-Title": project.name,
+                   "Implementation-Version": project.version)
+    }
+    archiveAppendix = "wasm_interface"
+}
+
+
+task buildRust(type: Exec) {
+    description "Build the Rust project."
+
+    commandLine "make", "build-rust"
+}
+
+task copyAllArtifacts(type: Copy) {
+    dependsOn buildRust
+
+    description "Copy build artifacts to the `build/` directory."
+
+    from "artifacts"
+    include "**/*"
+    into "$buildDir/toArtifact/natives/"
+}
+
+
+jar.outputs.upToDateWhen { false }
+compileTestJava.dependsOn buildRust
+processResources.dependsOn copyAllArtifacts
