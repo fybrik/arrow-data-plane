@@ -9,3 +9,5 @@
 
 rootProject.name = 'adp'
 include('java-wasm-allocator')
+include('flight-server')
+include('flight-client')
