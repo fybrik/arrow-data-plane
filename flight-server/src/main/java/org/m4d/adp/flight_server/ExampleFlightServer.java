@@ -50,30 +50,19 @@ public class ExampleFlightServer implements AutoCloseable {
      *  Main method starts the server listening to localhost:12233.
      */
     public static void main(String[] args) throws Exception {
-        // if ((args.length != 3) && (args.length != 6)) {
-        //     System.out.println("Arguments are either:");
-        //     System.out.println("\texample host port");
-        //     System.out.println("\trelay transformation(true/false) host port remote_host remote_port");
-        //     System.exit(-1);
-        // }
-
         boolean relay = false;
         boolean transform = false;
         String host;
         int port;
         String remote_host = null;
         int remote_port = 0;
-
-        // if (!args[0].equals("example") && !args[0].equals("relay")) {
-        //     System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + args[0]);
-        //     System.exit(-1);
         BufferAllocator a;
         CommandLineParser parser = new DefaultParser();
         Options options = new Options();
 
         options.addOption("a", "alloc", true, "Allocation type");
         options.addOption("s", "server_type", true, "Server type");
-        options.addOption("t", "transformation", false, "relay transformation(true/false)");
+        options.addOption("t", "transformation", true, "relay transformation(true/false)");
         options.addOption("h", "host", true, "Host");
         options.addOption("p", "port", true, "Port");
         options.addOption("rh", "remote_host", true, "Remote host");
@@ -87,46 +76,15 @@ public class ExampleFlightServer implements AutoCloseable {
         } else {
             a = new RootAllocator(Long.MAX_VALUE);
         }
-        
-        // if(line.hasOption("alloc")){
-        //     String[] argVal = line.getOptionValues("alloc");
-        //     if(argVal[0].equals("wasm")) {
-        //         WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
-        //         a = createWasmAllocator(wasmAllocationFactory);
-        //     }else {
-        //         a = new RootAllocator(Long.MAX_VALUE);
-        //     }
-        // }else{
-        //     a = new RootAllocator(Long.MAX_VALUE);
-        // }
-        
-
         String server_type_arg = line.getOptionValue("server_type", "example");
         if (server_type_arg.equals("relay")) {
             relay = true;
-            transform = line.hasOption("transformation");
+            transform = Boolean.valueOf(line.getOptionValue("transformation", "false"));
             remote_host = line.getOptionValue("remote_host", "localhost");
-            remote_port = Integer.valueOf(line.getOptionValue("port", "12233"));
+            remote_port = Integer.valueOf(line.getOptionValue("remote_port", "12233"));
         }
         host = line.getOptionValue("host", "0.0.0.0");
         port = Integer.valueOf(line.getOptionValue("port", "12232"));
-      
-        // if (line.hasOption("server_type")) {
-        //     String[] argVal = line.getOptionValues("server_type");
-        //     if (!argVal[0].equals("example") && !argVal[0].equals("relay")) {
-        //         System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + argVal[0]);
-        //         System.exit(-1);
-        //     } 
-        //     else if (argVal[0].equals("relay")) {
-        //         relay = true;
-        //         if (argVal.length == 2) {
-        //             transform = Boolean.valueOf(argVal[1]);
-        //         }
-        //     }
-        // } else {
-        //     System.out.println("Need a 'server-type' argument: either 'example' or 'relay'");
-        //     System.exit(-1);
-        // }
         
         final Location location;
         final NoOpFlightProducer producer;
