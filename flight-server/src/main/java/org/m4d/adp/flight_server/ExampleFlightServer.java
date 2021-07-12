@@ -12,6 +12,7 @@ import org.m4d.adp.allocator.WasmAllocationFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 /**
@@ -69,6 +70,7 @@ public class ExampleFlightServer implements AutoCloseable {
         BufferAllocator a;
         CommandLineParser parser = new DefaultParser();
         Options options = new Options();
+
         options.addOption("a", "alloc", true, "Allocation type");
         options.addOption("s", "server_type", true, "Server type");
         options.addOption("t", "transformation", false, "relay transformation(true/false)");
@@ -76,6 +78,7 @@ public class ExampleFlightServer implements AutoCloseable {
         options.addOption("p", "port", true, "Port");
         options.addOption("rh", "remote_host", true, "Remote host");
         options.addOption("rp", "remote_port", true, "Remote port");
+
         CommandLine line = parser.parse( options, args );
         String allocator_type = line.getOptionValue("alloc", "Root");
         if(allocator_type.equals("wasm")) {
