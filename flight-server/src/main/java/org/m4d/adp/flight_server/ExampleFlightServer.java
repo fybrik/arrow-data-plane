@@ -108,22 +108,22 @@ public class ExampleFlightServer implements AutoCloseable {
         host = line.getOptionValue("host", "0.0.0.0");
         port = Integer.valueOf(line.getOptionValue("port", "12232"));
       
-        if (line.hasOption("server_type")) {
-            String[] argVal = line.getOptionValues("server_type");
-            if (!argVal[0].equals("example") && !argVal[0].equals("relay")) {
-                System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + argVal[0]);
-                System.exit(-1);
-            }
-            else if (argVal[0].equals("relay")) {
-                relay = true;
-                if (argVal.length == 2) {
-                    transform = Boolean.valueOf(argVal[1]);
-                }
-            }
-        }else {
-            System.out.println("Need a 'prod' argument: either 'example' or 'relay'");
-            System.exit(-1);
-        }
+        // if (line.hasOption("server_type")) {
+        //     String[] argVal = line.getOptionValues("server_type");
+        //     if (!argVal[0].equals("example") && !argVal[0].equals("relay")) {
+        //         System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + argVal[0]);
+        //         System.exit(-1);
+        //     } 
+        //     else if (argVal[0].equals("relay")) {
+        //         relay = true;
+        //         if (argVal.length == 2) {
+        //             transform = Boolean.valueOf(argVal[1]);
+        //         }
+        //     }
+        // } else {
+        //     System.out.println("Need a 'server-type' argument: either 'example' or 'relay'");
+        //     System.exit(-1);
+        // }
         
         final Location location;
         final NoOpFlightProducer producer;
