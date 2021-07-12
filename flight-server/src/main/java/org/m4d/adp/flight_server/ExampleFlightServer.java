@@ -53,36 +53,36 @@ public class ExampleFlightServer implements AutoCloseable {
         CommandLineParser parser = new DefaultParser();
         Options options = new Options();
         options.addOption("alloc", true, "Allocation type");
-        options.addOption("prod", true, "Producer type");
+        options.addOption("server-type", true, "Server type");
         CommandLine line = parser.parse( options, args );
         if(line.hasOption("alloc")){
             String[] argVal = line.getOptionValues("alloc");
             if(argVal[0].equals("wasm")) {
                 WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
                 a = createWasmAllocator(wasmAllocationFactory);
-            }else {
+            } else {
                 a = new RootAllocator(Long.MAX_VALUE);
             }
-        }else{
+        } else {
             a = new RootAllocator(Long.MAX_VALUE);
         }
         
         boolean relay = false;
         boolean transform = false;
-        if (line.hasOption("prod")) {
-            String[] argVal = line.getOptionValues("prod");
+        if (line.hasOption("server-type")) {
+            String[] argVal = line.getOptionValues("server-type");
             if (!argVal[0].equals("example") && !argVal[0].equals("relay")) {
                 System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + argVal[0]);
                 System.exit(-1);
-            }
+            } 
             else if (argVal[0].equals("relay")) {
                 relay = true;
                 if (argVal.length == 2) {
                     transform = Boolean.valueOf(argVal[1]);
                 }
             }
-        }else {
-            System.out.println("Need a 'prod' argument: either 'example' or 'relay'");
+        } else {
+            System.out.println("Need a 'server-type' argument: either 'example' or 'relay'");
             System.exit(-1);
         }
         
