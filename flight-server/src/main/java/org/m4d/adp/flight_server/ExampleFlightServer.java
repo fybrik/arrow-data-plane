@@ -12,6 +12,7 @@ import org.m4d.adp.allocator.WasmAllocationFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 /**
@@ -53,7 +54,9 @@ public class ExampleFlightServer implements AutoCloseable {
         CommandLineParser parser = new DefaultParser();
         Options options = new Options();
         options.addOption("alloc", true, "Allocation type");
-        options.addOption("server-type", true, "Server type");
+        Option type = new Option("servertype", "Server type");
+        type.setArgs(2);
+        options.addOption(type);
         CommandLine line = parser.parse( options, args );
         if(line.hasOption("alloc")){
             String[] argVal = line.getOptionValues("alloc");
@@ -69,8 +72,8 @@ public class ExampleFlightServer implements AutoCloseable {
         
         boolean relay = false;
         boolean transform = false;
-        if (line.hasOption("server-type")) {
-            String[] argVal = line.getOptionValues("server-type");
+        if (line.hasOption("servertype")) {
+            String[] argVal = line.getOptionValues("servertype");
             if (!argVal[0].equals("example") && !argVal[0].equals("relay")) {
                 System.out.println("Only acceptable arguments are 'direct' or 'relay'. got " + argVal[0]);
                 System.exit(-1);
@@ -82,7 +85,7 @@ public class ExampleFlightServer implements AutoCloseable {
                 }
             }
         } else {
-            System.out.println("Need a 'server-type' argument: either 'example' or 'relay'");
+            System.out.println("Need a 'servertype' argument: either 'example' or 'relay'");
             System.exit(-1);
         }
         
