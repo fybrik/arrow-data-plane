@@ -1,3 +1,5 @@
+mod exporter;
+
 // This is the interface to the JVM that we'll call the majority of our
 // methods on.
 use jni::JNIEnv;
@@ -11,17 +13,19 @@ use jni::objects::{JClass, JString, JObject, JValue};
 // can't return one of the objects with lifetime information because the
 // lifetime checker won't let us.
 use jni::sys::{jlong, jarray, jobjectArray, jint};
+
 use arrow::{
     buffer::Buffer,
     datatypes::{Schema, Field, DataType},
     array::{ArrayData, ArrayDataBuilder, StructArray, ArrayRef},
+    util::pretty::print_batches,
+    record_batch::RecordBatch
 };
-use arrow::util::pretty::print_batches;
 
 use std::ptr::NonNull;
 use std::sync::Arc;
 use serde_json::Value;
-use arrow::record_batch::RecordBatch;
+use std::mem;
 
 
 // This keeps Rust from "mangling" the name and making it unique for this
@@ -77,8 +81,9 @@ pub extern "system" fn Java_com_ibm_arrowconverter_ArrowJNIAdapter_Convert2Cdata
     //println!("array: {:?}", record.columns()[0].data());
     println!("managed to convert to a RecordBatch!");
     check_batch(&record);
-    let _ = print_batches(&[record]);
+    let _ = print_batches(&[record.clone()]);
     println!("passed assertion");
+    mem::forget(record);
 }
 
 fn check_batch(record_batch: &RecordBatch) {
