@@ -12,3 +12,4 @@ include('java-wasm-allocator')
 include('flight-server')
 include('flight-client')
 include('wasm_interface')
+
