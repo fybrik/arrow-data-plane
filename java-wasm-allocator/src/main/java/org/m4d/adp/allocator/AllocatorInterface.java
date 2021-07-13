@@ -4,6 +4,8 @@ package org.m4d.adp.allocator;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.m4d.adp.WasmInterface;
+import java.io.IOException;
+import org.scijava.nativelib.NativeLoader;
 
 
 /**
@@ -14,8 +16,12 @@ public class AllocatorInterface {
 
     static{
         if (!WasmInterface.LOADED_EMBEDDED_LIBRARY) {
-            Path p = Paths.get("../wasm_interface/target/release/libwasm_interface.so");
-            System.load(p.toAbsolutePath().toString());
+            try {
+                System.out.println("nativeLoader");
+                NativeLoader.loadLibrary("wasm_interface");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
