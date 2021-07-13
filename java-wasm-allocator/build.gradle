@@ -18,6 +18,6 @@ dependencies {
     implementation 'org.apache.arrow:arrow-vector:4.0.0'
     implementation 'org.apache.arrow:arrow-tools:4.0.0'
     implementation 'org.apache.arrow:flight-core:4.0.0'
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'org.scijava:native-lib-loader:2.3.5'
 }
 

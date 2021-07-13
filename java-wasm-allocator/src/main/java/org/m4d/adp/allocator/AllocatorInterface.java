@@ -6,7 +6,8 @@ import java.nio.file.Paths;
 import org.m4d.adp.WasmInterface;
 import java.io.IOException;
 import org.scijava.nativelib.NativeLoader;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * AllocatorInterface is used to define functions which are implemented in a JNI library.
@@ -14,13 +15,14 @@ import org.scijava.nativelib.NativeLoader;
  */
 public class AllocatorInterface {
 
+    private static Logger logger = LoggerFactory.getLogger(AllocatorInterface.class);
+
     static{
         if (!WasmInterface.LOADED_EMBEDDED_LIBRARY) {
             try {
-                System.out.println("nativeLoader");
                 NativeLoader.loadLibrary("wasm_interface");
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("AllocateInterface failed to load wasm_interface library: " + e.getMessage());
             }
         }
     }
