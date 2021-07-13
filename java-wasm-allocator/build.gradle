@@ -6,13 +6,6 @@ plugins {
     id 'org.m4d.adp.java-library-conventions'
 }
 
-repositories {
-    mavenCentral()
-    flatDir {
-       dirs 'libs'
-   }
-}
-
 
 dependencies {
     implementation 'org.apache.arrow:arrow-vector:4.0.0'
