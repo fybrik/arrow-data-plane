@@ -16,6 +16,11 @@ import org.apache.arrow.vector.types.pojo.Schema;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Flight Producer for flight server that serves as relay to another
+ *  flight server (e.g. the flight server with ExampleProducer).
+ *  Depending on the transform boolean, this server may transform
+ *  the first column with a constant column.
+ */
 public class RelayProducer extends NoOpFlightProducer {
     BufferAllocator allocator;
     private boolean transform = false;

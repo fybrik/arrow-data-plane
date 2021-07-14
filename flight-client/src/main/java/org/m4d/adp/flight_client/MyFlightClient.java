@@ -8,6 +8,9 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import java.nio.charset.StandardCharsets;
 
 public class MyFlightClient {
+    /** Accepts the hostname and port of the flight server.
+     *  Reads the record-batches one at a time.
+     *  measures time and computes throughput. */
     public static void main(String[] args) {
         if (args.length != 2) {
             System.out.println("Usage: MyFlightClient host port");
