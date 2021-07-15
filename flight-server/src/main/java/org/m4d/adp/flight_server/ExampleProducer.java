@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/** Flight Producer for flight server that returns a single dataset.
+ *  The dataset consists of a 1000 identical record batches. The record
+ *  batch is in memory, has 4 integer columns of size 1024*1024.
+ */
 public class ExampleProducer extends NoOpFlightProducer {
     private final Location location;
     private final BufferAllocator allocator;

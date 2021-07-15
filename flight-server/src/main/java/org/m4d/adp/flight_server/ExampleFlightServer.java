@@ -34,7 +34,9 @@ public class ExampleFlightServer implements AutoCloseable {
     }
 
     /**
-     *  Main method starts the server listening to localhost:12233.
+     *  Main method starts the flight server.
+     *  This server is either the memory server (using ExampleProducer) or
+     *  a relay server (using RelayProducer). 
      */
     public static void main(String[] args) throws Exception {
         if ((args.length != 3) && (args.length != 6)) {
