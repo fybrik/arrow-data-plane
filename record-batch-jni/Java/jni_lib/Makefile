@@ -4,7 +4,7 @@ build:
 
 .PHONY: run
 run:
-	cd target && java -Djava.library.path=../../../lib/  \
+	cd target && java -Djava.library.path=../../..  \
 		 -cp "java-project-1.0-SNAPSHOT-jar-with-dependencies.jar" \
 		  com.ibm.arrowconverter.ArrowJNIAdapter
 
