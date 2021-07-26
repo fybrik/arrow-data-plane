@@ -1,0 +1,58 @@
+##################################################################################################
+# Both Servers
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: both
+  labels:
+    app: both
+    service: both
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 12233
+    targetPort: 12233
+    name: direct
+  - port: 12232
+    targetPort: 12232
+    name: both
+  selector:
+    app: both
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: both
+  labels:
+    account: both
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: both-v1
+  labels:
+    app: both
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: both
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: both
+        version: v1
+    spec:
+      serviceAccountName: both
+      serviceAccount: both
+      containers:
+      - name: both
+        image: example_both:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 12232
+        - containerPort: 12233
+---

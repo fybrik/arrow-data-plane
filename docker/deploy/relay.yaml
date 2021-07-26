@@ -1,0 +1,58 @@
+##################################################################################################
+# Relay Server
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: relay
+  labels:
+    app: relay
+    service: relay
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 12233
+    targetPort: 12233
+    name: direct
+  - port: 12232
+    targetPort: 12232
+    name: relay
+  selector:
+    app: relay
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: relay
+  labels:
+    account: relay
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: relay-v1
+  labels:
+    app: relay
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: relay
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: relay
+        version: v1
+    spec:
+      serviceAccountName: relay
+      serviceAccount: relay
+      containers:
+      - name: relay
+        image: example_relay:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 12232
+        - containerPort: 12233
+---
