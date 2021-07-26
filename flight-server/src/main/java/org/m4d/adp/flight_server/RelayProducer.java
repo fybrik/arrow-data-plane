@@ -12,6 +12,7 @@ import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.m4d.adp.transform.TransformInterface;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,25 +64,44 @@ public class RelayProducer extends NoOpFlightProducer {
         VectorSchemaRoot root_out = null;
         VectorLoader loader = null;
         VectorUnloader unloader = null;
+        long ffi_arrow_schema_in_ptr = 0;
 
         boolean first = true;
         while (s.next()) {
             root_in = s.getRoot();
-            if (first) {
-                root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
-                loader = new VectorLoader(root_out);
-                listener.setUseZeroCopy(false);
-                listener.start(root_out);
-                first = false;
-            }
-            if (transform) {
-                root_in = transformVectorSchemaRoot(root_in);
+            long ffi_in_ptr = TransformInterface.convertVSR2FFI(root_in, ffi_arrow_schema_in_ptr);
+            if (ffi_arrow_schema_in_ptr == 0) {
+                ffi_arrow_schema_in_ptr = TransformInterface.getFFIArrowSchema(ffi_in_ptr);
             }
 
-            unloader = new VectorUnloader(root_in);
+            long ffi_out_ptr = TransformInterface.transformation(ffi_in_ptr);
+
+            // root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator); // one option
+            root_out = TransformInterface.createOrUpdateVSR(ffi_out_ptr, root_out);
+            
+            unloader = new VectorUnloader(root_out);
             loader.load(unloader.getRecordBatch());
 
             listener.putNext();
+            
+            //dropFFIArrowArray(getFFIArrowArray(ffi_in_ptr));
+
+            // root_in = s.getRoot();
+            // if (first) {
+            //     root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
+            //     loader = new VectorLoader(root_out);
+            //     listener.setUseZeroCopy(false);
+            //     listener.start(root_out);
+            //     first = false;
+            // }
+            // if (transform) {
+            //     root_in = transformVectorSchemaRoot(root_in);
+            // }
+
+            // unloader = new VectorUnloader(root_in);
+            // loader.load(unloader.getRecordBatch());
+
+            // listener.putNext();
         }
         listener.completed();
     }
