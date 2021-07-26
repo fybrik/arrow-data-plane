@@ -1,0 +1,10 @@
+FROM openjdk:11
+
+RUN apt-get update \
+    && apt-get install -y time
+
+COPY logging.xml /root
+COPY flight-server-all.jar /root/
+COPY run_memory_server.sh /root/
+
+CMD ["/root/run_memory_server.sh"]
