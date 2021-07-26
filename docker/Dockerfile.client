@@ -1,0 +1,10 @@
+FROM openjdk:11
+
+RUN apt-get update \
+    && apt-get install -y time
+
+COPY logging.xml /root
+COPY flight-client-all.jar /root/
+COPY run_client.sh /root/
+
+CMD ["sleep", "365d"]
