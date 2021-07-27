@@ -46,9 +46,8 @@ jar {
 }
 
 task buildRust(type: Exec) {
-    commandLine "echo", "gg"
     commandLine "rustup", "target", "add", osName
-    commandLine "cargo", "build", "--release", "--target="+osName
+    commandLine "cargo", "build", "--release", "--target=" + osName
 }
 
 task mkdirRun(type: Exec) {
