@@ -15,6 +15,7 @@ dependencies {
 }
 
 task fatJar(type: Jar) {
+  dependsOn ':java-wasm-interface:build'
   manifest.from jar.manifest
   classifier = 'all'
   from {
