@@ -1,0 +1,26 @@
+[package]
+name = "use_transform_wasm"
+version = "0.1.0"
+authors = ["Mohammad Nassar <mohammad.nassar@ibm.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasmer = "2.0"
+wasmer-compiler-cranelift = {version = "2.0", optional = true}
+wasmer-engine-universal = "2.0"
+#arrow = {version = "5.0", default-features = false, features = ["js"] }
+arrow = "4.0.0"
+
+[build-dependencies]
+anyhow = "1.0"
+
+[dev-dependencies]
+anyhow = "1.0"
+
+
+[features]
+cranelift = [
+    "wasmer-compiler-cranelift",
+]
