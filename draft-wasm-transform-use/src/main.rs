@@ -49,20 +49,26 @@ impl<Kind> Deref for Pointer<Kind> {
 pub struct Tuple (pub i64, pub i64 );
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let wasm_bytes_file = std::fs::read("../wasm-modules/transform/target/wasm32-unknown-unknown/release/wasm_transform.wasm")?;
+    let wasm_bytes = std::fs::read("../wasm-modules/transform/target/wasm32-unknown-unknown/release/wasm_transform.wasm")?;
     let store = Store::new(&Universal::new(Cranelift::default()).engine());
     println!("Compiling module...");
     // Let's compile the Wasm module.
-    let module_file = Module::new(&store, wasm_bytes_file)?;
+    let module = Module::new(&store, wasm_bytes)?;
     let import_object = imports! {
       "env" => {
       }
     };
-    let instance_file = Instance::new(&module_file, &import_object)?;
+    let instance = Instance::new(&module, &import_object)?;
     println!("instanced");
-    let create_ffi_arrow_wasm = instance_file.exports.get_function("create_ffi_arrow")?.native::<(),(i64)>()?;
-    let transform_wasm = instance_file.exports.get_function("transform")?.native::<i64,i64>()?;
-    let check_transform_wasm = instance_file.exports.get_function("check_transform")?.native::<(i64, i32),()>()?;
+    let create_ffi_arrow_wasm = instance.exports.get_function("create_ffi_arrow")?.native::<(),i64>()?;
+    let transform_wasm = instance.exports.get_function("transform")?.native::<i64,i64>()?;
+    let check_transform_wasm = instance.exports.get_function("check_transform")?.native::<(i64, i32),()>()?;
+    let drop_wasm = instance.exports.get_function("drop_record_batch")?.native::<i64,()>()?;
+
+    // let local_ffi_ptr = create_ffi_arrow();
+    // println!("gg");
+    // check_transform_wasm.call(local_ffi_ptr, 0)?;
+    // println!("gg2");
 
     let ffi_ptr = create_ffi_arrow_wasm.call()?;
     check_transform_wasm.call(ffi_ptr, 0)?;
@@ -70,6 +76,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ffi_transformed_ptr = transform_wasm.call(ffi_ptr)?;
     check_transform_wasm.call(ffi_transformed_ptr, 1)?;
     println!("post transformation check passed");
+
+    // drop_wasm.call(ffi_ptr)?;
+    // println!("after drop");
+    // check_transform_wasm.call(ffi_transformed_ptr, 0)?;
+    // println!("post transformation check passed");
+    
     
     // let f = Field::new("name", DataType::Int16, true);
     // let int_array = Int16Array::from(vec![1]);
@@ -87,6 +99,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // let ffi_tuple = Tuple(FFIAA as i64, FFIAS as i64);
     // let ffi_tuple_ptr: i64 = Pointer::new(ffi_tuple).into();
+
+    // let ffi_tuple_ptr = create_ffi_arrow();
+
     // check_transform(ffi_tuple_ptr, false);
     // let ffi_transformed = transform(ffi_tuple_ptr);
     // println!("record batch** {:?}", ffi_transformed);
@@ -95,6 +110,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+
+pub fn create_ffi_arrow() -> i64 {
+    let field1 = Field::new("a", DataType::Int16, true);
+    let field2 = Field::new("b", DataType::Int16, true);
+    let int_array1 = Int16Array::from(vec![1]);
+    let int_array_data1 = make_array(int_array1.data().clone());
+    let int_array2 = Int16Array::from(vec![2]);
+    let int_array_data2 = make_array(int_array2.data().clone());
+    let array = StructArray::try_from(vec![(field1, int_array_data1), (field2, int_array_data2)]).unwrap();
+    println!("struct array = {:?}", array);
+
+    let (ffiaa, ffias) = array.to_raw().unwrap();
+    let ffi_tuple = Tuple(ffiaa as i64, ffias as i64);
+    let ffi_tuple_ptr: i64 = Pointer::new(ffi_tuple).into();
+    ffi_tuple_ptr
+}
 
 pub fn transform(ffi_ptr: i64) -> i64 {
     let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
