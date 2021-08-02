@@ -31,7 +31,7 @@ use arrow::array::{Array, make_array_from_raw};
 use crate::transformer;
 
 #[no_mangle]
-pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_GetFFIArrowArray(_env: JNIEnv,_class: JClass, ffi_ptr: jptr) -> jlong {
+pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_GetFFIArrowArray(_env: JNIEnv,_class: JClass, ffi_ptr: jptr) -> jptr {
     let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
     let PFFIAA = ((*ffi_tuple).0) as *const FFI_ArrowArray;
     unsafe{println!("****FFIAA = {:?}", (PFFIAA))};
@@ -39,7 +39,7 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_GetFFIArrow
     ret_ffiaa_ptr
 }
 #[no_mangle]
-pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_GetFFIArrowSchema(_env: JNIEnv,_class: JClass, ffi_ptr: jptr) -> jlong{
+pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_GetFFIArrowSchema(_env: JNIEnv,_class: JClass, ffi_ptr: jptr) -> jptr {
     let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
     let PFFIAS = ((*ffi_tuple).1) as *const FFI_ArrowSchema;
     unsafe{println!("****FFIAS = {:?}", (PFFIAS))};
@@ -52,7 +52,7 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_GetFFIArrow
 pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_convertVSR2FFI(env: JNIEnv,
                                                                                     _class: JClass,
                                                                                     vsr_org: JObject)
-                                                                                    -> jlong {
+                                                                                    -> jptr {
     let jo_schema = env.call_method(vsr_org, "getSchema","()Lorg/apache/arrow/vector/types/pojo/Schema;",&[])
         .unwrap()
         .l()
@@ -88,7 +88,7 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_convertVSR2
     }
     // create struct array
     let struct_array_org = StructArray::from(pairs);
-    let tuple =  struct_array_org.to_raw().unwrap() ;
+    let tuple =  struct_array_org.to_raw().unwrap();
 
     Pointer::new(PFFIAS).into(tuple);
 }
@@ -98,7 +98,7 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_createOrUpd
                                                                                     _class: JClass,
                                                                                     c_data_interface: jptr,
                                                                                     vsr_target: JObject)
-                                                                                    -> jptr {
+                                                                                    -> jobject {
     let record = transformer::c_data_interface_to_record_batch(c_data_interface);
     let vsr : JObject;
     if vsr_target.is_null() {
@@ -118,5 +118,5 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_createOrUpd
         vsr = vsr_target;
     }
     transformer::load_record_batch_to_vsr(env, vsr, &record);
-    vsr.into_inner() as jptr
+    vsr.into_inner()
 }
