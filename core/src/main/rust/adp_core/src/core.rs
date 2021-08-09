@@ -17,6 +17,14 @@ pub struct CoreInstance {
     pub finalize_tansform_func: NativeFunc<u32, ()>,
 }
 
+#[repr(C)]
+pub struct FFI_TransformContext {
+    pub in_schema: u32,
+    pub in_array: u32,
+    pub out_schema: u32,
+    pub out_array: u32,
+}
+
 impl CoreInstance {
     /// create a new [`Ffi_ArrowSchema`]. This fails if the fields' [`DataType`] is not supported.
     pub fn try_new(module_bytes: &[u8]) -> Result<Self, io::Error> {
@@ -80,7 +88,7 @@ impl CoreInstance {
         self.prepare_transform_func.call().unwrap()
     }
 
-    pub fn transform_func(&self, context: u32) {
+    pub fn transform(&self, context: u32) {
         self.transform_func.call(context).unwrap();
     }
 
