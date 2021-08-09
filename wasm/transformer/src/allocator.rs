@@ -9,13 +9,7 @@ pub extern "C" fn allocate_buffer(len: u32) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn deallocate_buffer(ptr: u32, size: u32) {
-    let data = unsafe {
-        Vec::from_raw_parts(
-            ptr as *mut u8,
-            size.try_into().unwrap(),
-            size.try_into().unwrap(),
-        )
-    };
+pub unsafe extern "C" fn deallocate_buffer(ptr: u32, size: u32) {
+    let data = Vec::from_raw_parts(ptr as *mut u8, size as usize, size as usize);
     std::mem::drop(data);
 }

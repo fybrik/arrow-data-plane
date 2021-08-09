@@ -49,39 +49,46 @@ public class ExampleFlightServer implements AutoCloseable {
         CommandLine line = parser.parse(options, args);
         String host = line.getOptionValue("host", "localhost");
         int port = Integer.parseInt(line.getOptionValue("port", "49152"));
-        String transform = line.getOptionValue("transform", "./corev2/src/main/rust/wasm/polars_transform/target/wasm32-unknown-unknown/release/polars_transform.wasm");
-        System.out.println("transform");
-        System.out.println(transform);
+        String transform = line.getOptionValue("transform", "./wasm/transformer/target/wasm32-unknown-unknown/release/transformer.wasm");
         Instance instance = null;
         RootAllocator allocator;
         Transformer transformer;
         if (transform != null && !transform.isEmpty()) {
+            System.out.printf("Creating instance for %s%n", transform);
             instance = new Instance(transform);
+            System.out.println("Creating WasmAllocationFactory");
             Factory allocationFactory = new WasmAllocationFactory(instance);
+            System.out.println("Creating RootAllocator");
             allocator = new RootAllocator(RootAllocator.configBuilder().allocationManagerFactory(allocationFactory).build());
+            System.out.println("Creating WasmTransformer");
             transformer = new WasmTransformer(allocator, instance);
         } else {
             allocator = new RootAllocator(Long.MAX_VALUE);
             transformer = new NoOpTransformer();
         }
 
+        System.out.printf("Listening %s:%d%n", host, port);
         Location location = Location.forGrpcInsecure(host, port);
         ExampleProducer producer = new ExampleProducer(location, allocator, transformer);
         ExampleFlightServer server = new ExampleFlightServer(allocator, location, producer);
         server.start();
+        final Instance instanceToClose = instance;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 System.out.println("\nExiting...");
                 AutoCloseables.close(new AutoCloseable[]{server, producer, allocator});
+                if (instanceToClose != null) {
+                    instanceToClose.close();
+                }
             } catch (Exception var4) {
                 var4.printStackTrace();
             }
 
         }));
         server.awaitTermination();
-        if (instance != null) {
-            instance.close();
-        }
+        // if (instance != null) {
+        //     instance.close();
+        // }
 
     }
 }

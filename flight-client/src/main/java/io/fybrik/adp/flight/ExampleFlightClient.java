@@ -30,7 +30,7 @@ public class ExampleFlightClient {
         final BufferAllocator rootAllocator = new RootAllocator(Long.MAX_VALUE);
         BufferAllocator allocator = rootAllocator.newChildAllocator("flight-client", 0, Long.MAX_VALUE);
         final FlightClient client = FlightClient.builder().allocator(allocator)
-                .location(Location.forGrpcInsecure(host, Integer.valueOf(port))).build();
+                .location(Location.forGrpcInsecure(host, port)).build();
 
         final CallHeaders callHeaders = new FlightCallHeaders();
         final HeaderCallOption clientProperties = new HeaderCallOption(callHeaders);

@@ -70,6 +70,13 @@ impl CoreInstance {
         })
     }
 
+    pub fn context(&self, context: u64) -> &FFI_TransformContext {
+        let base = self.allocator_base();
+        let ctx = (base + context) as *const FFI_TransformContext;
+        let ctx = unsafe { &*ctx };
+        ctx    
+    }
+
     pub fn allocator_base(&self) -> u64 {
         let memory = self.instance.exports.get_memory("memory").unwrap();
         let mem_ptr = memory.data_ptr();
