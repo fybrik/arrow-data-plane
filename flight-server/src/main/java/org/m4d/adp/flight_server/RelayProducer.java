@@ -9,10 +9,16 @@ import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
+import org.apache.arrow.vector.ipc.ArrowFileWriter;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +61,32 @@ public class RelayProducer extends NoOpFlightProducer {
         return v.addVector(0, this.constVec);
     }
 
+    private VectorSchemaRoot WASMTransformVectorSchemaRoot(VectorSchemaRoot v) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ArrowFileWriter writer = new ArrowFileWriter(v, null, Channels.newChannel(out));
+            writer.start();
+            writer.writeBatch();
+            writer.end();
+
+            byte[] recordBatchByteArray = out.toByteArray();
+            byte[] transformedRecordBatchByteArray = recordBatchByteArray.clone();
+
+            // send outByteArray and transformedBytes to WASM for transformation.
+            // we fake it by simply copying the bytes
+
+            ArrowStreamReader reader =
+                    new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray),
+                            allocator);
+            VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
+            reader.loadNextBatch();
+            return readBatch;
+            // do we need to run reader.close() ? Maybe in the "final" clause?
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     @Override
     public void getStream(CallContext context, Ticket ticket,
                           ServerStreamListener listener) {
@@ -75,7 +107,8 @@ public class RelayProducer extends NoOpFlightProducer {
                 first = false;
             }
             if (transform) {
-                root_in = transformVectorSchemaRoot(root_in);
+                //root_in = transformVectorSchemaRoot(root_in);
+                root_in = WASMTransformVectorSchemaRoot(root_in);
             }
 
             unloader = new VectorUnloader(root_in);
