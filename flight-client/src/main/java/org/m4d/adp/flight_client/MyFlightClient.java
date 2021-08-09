@@ -12,15 +12,16 @@ public class MyFlightClient {
      *  Reads the record-batches one at a time.
      *  measures time and computes throughput. */
     public static void main(String[] args) {
-        if (args.length != 2) {
-            System.out.println("Usage: MyFlightClient host port");
-            System.exit(-1);
-        }
-        String host = args[0];
-        String port = args[1];
+        Options options = new Options();
+        options.addOption("h", "host", true, "Host");
+        options.addOption("p", "port", true, "Port");
+        CommandLineParser parser = new DefaultParser();
+        CommandLine line = parser.parse(options, args);
+        String host = line.getOptionValue("host", "localhost");
+        int port = Integer.valueOf(line.getOptionValue("port", "49152"));
 
-        final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
-        BufferAllocator allocator = a.newChildAllocator("flight-client", 0, Long.MAX_VALUE);
+        final BufferAllocator rootAllocator = new RootAllocator(Long.MAX_VALUE);
+        BufferAllocator allocator = rootAllocator.newChildAllocator("flight-client", 0, Long.MAX_VALUE);
         final FlightClient client = FlightClient.builder()
                 .allocator(allocator)
                 .location(Location.forGrpcInsecure(host, Integer.valueOf(port)))

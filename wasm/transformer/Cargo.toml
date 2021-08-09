@@ -1,0 +1,10 @@
+[package]
+name = "transformer"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wee_alloc = "0.4.5"
+arrow = { path = "/home/roee88/arrow-repos/arrow-rs/arrow" }
