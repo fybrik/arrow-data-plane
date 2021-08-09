@@ -1,5 +1,6 @@
 package org.m4d.adp.ipc;
 
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BitVector;
@@ -49,10 +50,10 @@ public class IpcExampleStream {
         // write another four batches.
         for (int i = 0; i < 4; i++) {
             // populate VectorSchemaRoot data and write the second batch
-            BitVector childVector1 = (BitVector)root.getVector(0);
-            VarCharVector childVector2 = (VarCharVector)root.getVector(1);
-            childVector1.reset();
-            childVector2.reset();
+            //BitVector childVector1 = (BitVector)root.getVector(0);
+            //VarCharVector childVector2 = (VarCharVector)root.getVector(1);
+            //childVector1.reset();
+            //childVector2.reset();
             // ... do some populate work here, could be different for each batch
             writer.writeBatch();
         }
@@ -60,14 +61,19 @@ public class IpcExampleStream {
         // end
         writer.end();
 
+        byte[] outByteArray = out.toByteArray();
+        byte[] transformedBytes = outByteArray.clone();
 
+        // send outByteArray and transformedBytes to WASM for transformation.
+        // we fake it by simply copying the bytes
 
-        try (ArrowStreamReader reader = new ArrowStreamReader(new ByteArrayInputStream(out.toByteArray()), allocator)) {
+        try (ArrowStreamReader reader = new ArrowStreamReader(new ByteArrayInputStream(transformedBytes), allocator)) {
             Schema schema = reader.getVectorSchemaRoot().getSchema();
             for (int i = 0; i < 5; i++) {
                 // This will be loaded with new values on every call to loadNextBatch
                 VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
                 reader.loadNextBatch();
+                System.out.println(readBatch);
                 //... do something with readBatch
             }
         }
