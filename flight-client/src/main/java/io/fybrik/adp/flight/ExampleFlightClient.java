@@ -1,17 +1,23 @@
-package org.m4d.adp.flight_client;
+package io.fybrik.adp.flight;
 
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+
 import java.nio.charset.StandardCharsets;
 
-public class MyFlightClient {
+public class ExampleFlightClient {
+    
     /** Accepts the hostname and port of the flight server.
      *  Reads the record-batches one at a time.
      *  measures time and computes throughput. */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Options options = new Options();
         options.addOption("h", "host", true, "Host");
         options.addOption("p", "port", true, "Port");
