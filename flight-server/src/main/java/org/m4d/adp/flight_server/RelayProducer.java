@@ -71,7 +71,7 @@ public class RelayProducer extends NoOpFlightProducer {
     private VectorSchemaRoot WASMTransformVectorSchemaRoot(VectorSchemaRoot v) {
         try {
             WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
-            long instance_ptr = wasmAllocationFactory.instancePtr;
+            long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ArrowStreamWriter writer = new ArrowStreamWriter(v, null, Channels.newChannel(out));
             writer.start();
@@ -94,7 +94,7 @@ public class RelayProducer extends NoOpFlightProducer {
             
             wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
             System.out.println("mem addr after byte buffer put = " + wasm_mem_address);
-            long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, wasm_mem_address, allocatedAddress, length);
+            long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, allocatedAddress, length);
             AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, length);
             long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(transformed_bytes_tuple);
             long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(transformed_bytes_tuple);
@@ -130,7 +130,7 @@ public class RelayProducer extends NoOpFlightProducer {
         
 
         WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
-        long instance_ptr = wasmAllocationFactory.instancePtr;
+        long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
         FlightStream s = client.getStream(ticket);
         VectorSchemaRoot root_in;
         VectorSchemaRoot root_out = null;
