@@ -112,16 +112,15 @@ public class RelayProducer extends NoOpFlightProducer {
             }
             if (transform) {
                 root_in = WASMTransformVectorSchemaRoot(root_in);
-           }
+            }
 
             unloader = new VectorUnloader(root_in);
             loader.load(unloader.getRecordBatch());
 
             listener.putNext();
-            // System.out.println("relay producer - put next");
         }
         listener.completed();
-}
+    }
 
     @Override
     public FlightInfo getFlightInfo(FlightProducer.CallContext context,
