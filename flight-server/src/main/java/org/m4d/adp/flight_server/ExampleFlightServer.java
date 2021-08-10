@@ -7,12 +7,10 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.util.AutoCloseables;
 import org.apache.arrow.memory.AllocationManager;
-import org.m4d.adp.allocator.WasmAllocationManager;
 import org.m4d.adp.allocator.WasmAllocationFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 /**
