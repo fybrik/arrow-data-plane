@@ -29,8 +29,8 @@ public class TransformInterface {
 
 
     
-    public static native long GetFirstElemOfTuple(long tuple_ptr);
-    public static native long GetSecondElemOfTuple(long tuple_ptr);
+    public static native long GetFirstElemOfTuple(long instance_ptr, long tuple_ptr);
+    public static native long GetSecondElemOfTuple(long instance_ptr, long tuple_ptr);
     public static native long transformationIPC(long instance_ptr, long allocatedAddress, long size);
 
 } 

@@ -65,17 +65,17 @@ public class RelayProducer extends NoOpFlightProducer {
             long wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
             ByteBuffer buffer = MemoryUtil.directBuffer(allocatedAddress + wasm_mem_address, (int) length);
             buffer.put(recordBatchByteArray);
-            wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
             writer.close();
-
+            
             // Transform the vector schema root that is represented as a byte array in `allocatedAddress` memory address with length `length`
             // The function returns a tuple of `(address, lenght)` of as byte array that represents the transformed vector schema root 
             long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, allocatedAddress, length);
             AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, length);
             // Get the byte array from the memory address
-            long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(transformed_bytes_tuple);
-            long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(transformed_bytes_tuple);
-            ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address, (int) transformed_bytes_len);
+            long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);
+            long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(instance_ptr, transformed_bytes_tuple);
+            wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
+            ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address + wasm_mem_address, (int) transformed_bytes_len);
             byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
             transformed_buffer.get(transformedRecordBatchByteArray);
             
