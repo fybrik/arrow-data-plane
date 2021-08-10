@@ -118,7 +118,6 @@ public class RelayProducer extends NoOpFlightProducer {
             loader.load(unloader.getRecordBatch());
 
             listener.putNext();
-            // System.out.println("relay producer - put next");
         }
         listener.completed();
         System.out.println("relay producer - completed");
