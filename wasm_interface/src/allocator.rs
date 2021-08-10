@@ -44,6 +44,7 @@ pub extern fn wasmMemPtr(wasm_module_ptr: i64) -> i64 {
     let instance_ptr = &wasm_module.instance;
     let memory = instance_ptr.exports.get_memory("memory").unwrap();
     let mem_ptr = memory.data_ptr();
+    println!("allocator call,, mem ptr = {:?}, mem size = {:?}", mem_ptr, memory.size());
     mem_ptr as i64
 }
 

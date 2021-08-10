@@ -99,11 +99,21 @@ public class RelayProducer extends NoOpFlightProducer {
         VectorSchemaRoot root_out = null;
         VectorLoader loader = null;
         VectorUnloader unloader = null;
+        // final BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         boolean first = true;
+        System.out.println("relay producer");
         while (s.next()) {
             root_in = s.getRoot();
+        // System.out.println("vsr_src content: \n" + root_in.contentToTSVString());
+
+            // root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
+            // long ffi_in_ptr = TransformInterface.convertVSR2FFI(root_in);
+            // long ffi_out_ptr = TransformInterface.transformation(ffi_in_ptr);
+            // root_out = TransformInterface.createOrUpdateVSR(ffi_out_ptr, root_out);
             if (first) {
+                System.out.println("relay producer - first");
+
                 root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
                 loader = new VectorLoader(root_out);
                 listener.setUseZeroCopy(false);
@@ -118,9 +128,11 @@ public class RelayProducer extends NoOpFlightProducer {
             loader.load(unloader.getRecordBatch());
 
             listener.putNext();
-        }
-        listener.completed();
+            // System.out.println("relay producer - put next");
     }
+        listener.completed();
+        System.out.println("relay producer - completed");
+}
 
     @Override
     public FlightInfo getFlightInfo(FlightProducer.CallContext context,
