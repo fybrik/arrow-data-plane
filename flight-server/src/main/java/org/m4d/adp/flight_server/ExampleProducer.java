@@ -61,7 +61,6 @@ public class ExampleProducer extends NoOpFlightProducer {
     @Override
     public void getStream(FlightProducer.CallContext context, Ticket ticket,
                           FlightProducer.ServerStreamListener listener) {
-        System.out.println("example producer");
         final Runnable loadData = () -> {
             listener.setUseZeroCopy(true);
             listener.start(this.constVectorSchemaRoot);
@@ -71,6 +70,7 @@ public class ExampleProducer extends NoOpFlightProducer {
             }
             listener.completed();
         };
+        
         if (!isNonBlocking) {
             loadData.run();
         } else {

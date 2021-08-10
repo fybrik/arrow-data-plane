@@ -12,14 +12,12 @@ public class MyFlightClient {
      *  Reads the record-batches one at a time.
      *  measures time and computes throughput. */
     public static void main(String[] args) {
-        // if (args.length != 2) {
-        //     System.out.println("Usage: MyFlightClient host port");
-        //     System.exit(-1);
-        // }
-        // String host = args[0];
-        // String port = args[1];
-        String host = "localhost";
-        String port = "12232";
+        if (args.length != 2) {
+            System.out.println("Usage: MyFlightClient host port");
+            System.exit(-1);
+        }
+        String host = args[0];
+        String port = args[1];
 
         final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
         BufferAllocator allocator = a.newChildAllocator("flight-client", 0, Long.MAX_VALUE);
@@ -57,5 +55,6 @@ public class MyFlightClient {
         System.out.println("Time spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
         double throughput = (double)i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0);
         System.out.println("Throughput: " + String.format("%.2f", throughput / (1024*1024)) + "MB/sec");
+        a.close();
     }
 }
