@@ -1,23 +1,16 @@
 
-use std::os::raw::c_void;
-extern crate wee_alloc;
-use std::{io::Cursor};
-
-// Use `wee_alloc` as the global allocator.
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 use std::mem;
 use std::sync::Arc;
 use std::ops::Deref;
-use std::convert::TryFrom;
-use arrow::array::Int16Array;
+use std::io::Cursor;
+use std::os::raw::c_void;
+use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
-use arrow::datatypes::{Field, DataType};
-use arrow::ffi::{ArrowArray, ArrowArrayRef, FFI_ArrowArray, FFI_ArrowSchema};
-use arrow::array::{Array, ArrayRef, StructArray, make_array};
-
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
+extern crate wee_alloc;
+// Use `wee_alloc` as the global allocator.
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -105,88 +98,11 @@ pub fn transform_record_batch(record_in: RecordBatch) -> RecordBatch {
     transformed_record
 }
 
-// Creates an example FFI_ArrowArray and FFI_ArrowSchema and returns a pointer to them.
 #[no_mangle]
-pub fn create_empty_ffi_arrow() -> i64 {
-    let arrow_array= unsafe{ArrowArray::empty()};
-    let (ffiaa, ffias) = ArrowArray::into_raw(arrow_array);
-    let ffi_tuple = Tuple(ffiaa as i64, ffias as i64);
-    let ffi_tuple_ptr: i64 = Pointer::new(ffi_tuple).into();
-    ffi_tuple_ptr
-}
-
-// Creates an example FFI_ArrowArray and FFI_ArrowSchema and returns a pointer to them.
-#[no_mangle]
-pub fn create_ffi_arrow() -> i64 {
-    let field1 = Field::new("a", DataType::Int16, true);
-    let field2 = Field::new("b", DataType::Int16, true);
-    let int_array1 = Int16Array::from(vec![1]);
-    let int_array_data1 = make_array(int_array1.data().clone());
-    let int_array2 = Int16Array::from(vec![2]);
-    let int_array_data2 = make_array(int_array2.data().clone());
-    // The array has two columns, each column has one int16 value
-    let array = StructArray::try_from(vec![(field1, int_array_data1), (field2, int_array_data2)]).unwrap();
-
-    let (ffiaa, ffias) = array.to_raw().unwrap();
-    let ffi_tuple = Tuple(ffiaa as i64, ffias as i64);
-    let ffi_tuple_ptr: i64 = Pointer::new(ffi_tuple).into();
-    ffi_tuple_ptr
-}
-
-#[no_mangle]
-pub fn check_transform(ffi_ptr: i64, after_transform: i32) {
-    // Get the pointers of FFI_ArrowArray and FFI_ArrowSchema and create a record batch
-    let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
-    let pffiaa = ((*ffi_tuple).0) as *const FFI_ArrowArray;
-    let pffias = ((*ffi_tuple).1) as *const FFI_ArrowSchema;
-    let arrow_array = unsafe{ArrowArray::try_from_raw(pffiaa, pffias).unwrap()};
-    let array_data = arrow_array.to_data().unwrap();
-    let struct_array: StructArray = StructArray::from(array_data.clone());
-    let record = RecordBatch::from(&struct_array);
-
-    // Check that the data type is correct
-    assert_eq!(&DataType::Int16, record.schema().field(0).data_type());
-    if after_transform == 1 {
-        // Check if the first element of the second column is 0 after the transformation
-        assert_eq!(&0, record.column(1).data().buffers().first().unwrap().get(0).unwrap());
-    } else {
-        // Check if the first element of the second column is 2 before the transformation
-        assert_eq!(&2, record.column(1).data().buffers().first().unwrap().get(0).unwrap());
-    }
-
-    mem::forget(arrow_array);
-
-}
-
-#[no_mangle]
-pub fn drop_record_batch(ffi_ptr: i64) {
-    // Get the pointers of FFI_ArrowArray and FFI_ArrowSchema and create a record batch
-    let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
-    let pffiaa = ((*ffi_tuple).0) as *const FFI_ArrowArray;
-    let pffias = ((*ffi_tuple).1) as *const FFI_ArrowSchema;
-    let arrow_array = unsafe{ArrowArray::try_from_raw(pffiaa, pffias).unwrap()};
-    let array_data = arrow_array.to_data().unwrap();
-    let struct_array: StructArray = StructArray::from(array_data.clone());
-    let _record = RecordBatch::from(&struct_array);
-}
-
-#[no_mangle]
-pub fn create_tuple_ptr(pffiaa: i64, pffias: i64) -> i64 {
-    let ret_tuple = Tuple(pffiaa as i64, pffias as i64);
+pub fn create_tuple_ptr(elem1: i64, elem2: i64) -> i64 {
+    let ret_tuple = Tuple(elem1, elem2);
     let ret_tuple_ptr = Pointer::new(ret_tuple).into();
     ret_tuple_ptr
-}
-
-#[no_mangle]
-pub fn get_ffiaa(ffi_ptr: i64) -> i64 {
-    let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
-    (*ffi_tuple).0
-}
-
-#[no_mangle]
-pub fn get_ffias(ffi_ptr: i64) -> i64 {
-    let ffi_tuple = Into::<Pointer<Tuple>>::into(ffi_ptr).borrow();
-    (*ffi_tuple).1
 }
 
  //////////IPC related functions//////////
