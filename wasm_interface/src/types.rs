@@ -50,3 +50,7 @@ pub struct WasmModule {
     pub alloc_func: NativeFunc<i64, i32>,
     pub dealloc_func: NativeFunc<(i64, i64)>,
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Tuple (pub i64, pub i64 );

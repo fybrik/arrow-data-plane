@@ -98,6 +98,17 @@ pub fn transform(ffi_ptr: i64) -> i64 {
     ret_tuple_ptr
 }
 
+
+// Creates an example FFI_ArrowArray and FFI_ArrowSchema and returns a pointer to them.
+#[no_mangle]
+pub fn create_empty_ffi_arrow() -> i64 {
+    let arrow_array= unsafe{ArrowArray::empty()};
+    let (ffiaa, ffias) = ArrowArray::into_raw(arrow_array);
+    let ffi_tuple = Tuple(ffiaa as i64, ffias as i64);
+    let ffi_tuple_ptr: i64 = Pointer::new(ffi_tuple).into();
+    ffi_tuple_ptr
+}
+
 // Creates an example FFI_ArrowArray and FFI_ArrowSchema and returns a pointer to them.
 #[no_mangle]
 pub fn create_ffi_arrow() -> i64 {
