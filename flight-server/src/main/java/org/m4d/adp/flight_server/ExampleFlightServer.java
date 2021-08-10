@@ -73,6 +73,7 @@ public class ExampleFlightServer implements AutoCloseable {
         CommandLine line = parser.parse( options, args );
         String allocator_type = line.getOptionValue("alloc", "Root");
         if(allocator_type.equals("wasm")) {
+            System.out.println("wasm alloc");
             WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
             a = createWasmAllocator(wasmAllocationFactory);
         } else {
