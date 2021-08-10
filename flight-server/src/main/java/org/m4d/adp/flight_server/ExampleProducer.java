@@ -70,7 +70,7 @@ public class ExampleProducer extends NoOpFlightProducer {
             }
             listener.completed();
         };
-        
+
         if (!isNonBlocking) {
             loadData.run();
         } else {
