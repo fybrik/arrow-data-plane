@@ -12,12 +12,14 @@ public class MyFlightClient {
      *  Reads the record-batches one at a time.
      *  measures time and computes throughput. */
     public static void main(String[] args) {
-        if (args.length != 2) {
-            System.out.println("Usage: MyFlightClient host port");
-            System.exit(-1);
-        }
-        String host = args[0];
-        String port = args[1];
+        // if (args.length != 2) {
+        //     System.out.println("Usage: MyFlightClient host port");
+        //     System.exit(-1);
+        // }
+        // String host = args[0];
+        // String port = args[1];
+        String host = "localhost";
+        String port = "12232";
 
         final BufferAllocator a = new RootAllocator(Long.MAX_VALUE);
         BufferAllocator allocator = a.newChildAllocator("flight-client", 0, Long.MAX_VALUE);

@@ -65,11 +65,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let check_transform_wasm = instance.exports.get_function("check_transform")?.native::<(i64, i32),()>()?;
     let drop_wasm = instance.exports.get_function("drop_record_batch")?.native::<i64,()>()?;
 
-    // let local_ffi_ptr = create_ffi_arrow();
-    // println!("gg");
-    // check_transform_wasm.call(local_ffi_ptr, 0)?;
-    // println!("gg2");
-
     let ffi_ptr = create_ffi_arrow_wasm.call()?;
     check_transform_wasm.call(ffi_ptr, 0)?;
     println!("pre transformation check passed");
@@ -112,6 +107,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
 pub fn create_ffi_arrow() -> i64 {
+    // let empty = unsafe { ArrowArray::empty() };
+    // let empty_ptr = ArrowArray::into_raw(empty);
+    
+
     let field1 = Field::new("a", DataType::Int16, true);
     let field2 = Field::new("b", DataType::Int16, true);
     let int_array1 = Int16Array::from(vec![1]);
