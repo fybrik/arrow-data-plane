@@ -4,14 +4,11 @@ import com.google.common.collect.ImmutableList;
 import org.apache.arrow.flight.*;
 import org.apache.arrow.flight.perf.impl.PerfOuterClass;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
 import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
-import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.arrow.vector.types.Types;
@@ -23,7 +20,6 @@ import org.m4d.adp.transform.TransformInterface;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.nio.ByteBuffer;
@@ -39,23 +35,11 @@ public class RelayProducer extends NoOpFlightProducer {
     private boolean transform = false;
     private final FlightClient client;
     private final Location location;
-    private final BigIntVector constVec;
-    private int RecordsPerBatch = 1024*1024;
-
-    private BigIntVector getConstIntVector() {
-        BigIntVector c = new BigIntVector("a", allocator);
-        for (int j = 0; j < this.RecordsPerBatch; j++) {
-            c.setSafe(j, 13);
-        }
-        c.setValueCount(this.RecordsPerBatch);
-        return c;
-    }
 
     public RelayProducer(Location location, Location remote_location,
                           BufferAllocator allocator, boolean transform) {
         this.transform = transform;
         this.allocator = allocator;
-        this.constVec = getConstIntVector();
         this.location = location;
         this.client = FlightClient.builder()
                 .allocator(allocator)
@@ -63,62 +47,45 @@ public class RelayProducer extends NoOpFlightProducer {
                 .build();
     }
 
-    private VectorSchemaRoot transformVectorSchemaRoot(VectorSchemaRoot v) {
-        v = v.removeVector(0);
-        return v.addVector(0, this.constVec);
-    }
-
     private VectorSchemaRoot WASMTransformVectorSchemaRoot(VectorSchemaRoot v) {
         try {
             WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
             long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
+            // Write the vector schema root to an IPC stream
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ArrowStreamWriter writer = new ArrowStreamWriter(v, null, Channels.newChannel(out));
             writer.start();
             writer.writeBatch();
             writer.end();
-
+            // Get a byte array of the vector schema root
             byte[] recordBatchByteArray = out.toByteArray();
             long length = recordBatchByteArray.length;
-            // for(int i = 0; i < length; i++){
-            //     System.out.print(recordBatchByteArray[i] + " ,");
-            // }
-
+            // Allocate a block in wasm memory and copy the byte array to this block
             long allocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, length);
             long wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
-            System.out.println("mem addr before byte buffer = " + wasm_mem_address + " len " + length + " alloc addr " + allocatedAddress);
             ByteBuffer buffer = MemoryUtil.directBuffer(allocatedAddress + wasm_mem_address, (int) length);
             buffer.put(recordBatchByteArray);
-            // TransformInterface.writeByteBuffer(recordBatchByteArray, instance_ptr, allocatedAddress, length);
-
-            
             wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
-            System.out.println("mem addr after byte buffer put = " + wasm_mem_address);
+            writer.close();
+
+            // Transform the vector schema root that is represented as a byte array in `allocatedAddress` memory address with length `length`
+            // The function returns a tuple of `(address, lenght)` of as byte array that represents the transformed vector schema root 
             long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, allocatedAddress, length);
             AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, length);
+            // Get the byte array from the memory address
             long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(transformed_bytes_tuple);
             long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(transformed_bytes_tuple);
             ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address, (int) transformed_bytes_len);
             byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
             transformed_buffer.get(transformedRecordBatchByteArray);
-            // for(int i = 0; i < length; i++){
-                //     System.out.print(transformedRecordBatchByteArray[i] + " ,");
-                // }
-                
-                
-                // send outByteArray and transformedBytes to WASM for transformation.
-                // we fake it by simply copying the bytes
-                
-                ArrowStreamReader reader =
-                new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray),
-                allocator);
-                VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
-                reader.loadNextBatch();
-                // System.out.println("transformed batch\n" + readBatch.contentToTSVString());
-                // reader.close();
-                wasmAllocationFactory.close();
-                return readBatch;
-                // do we need to run reader.close() ? Maybe in the "final" clause?
+            
+            // Read the byte array to get the transformed vector schema root
+            ArrowStreamReader reader = new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray), allocator);
+            VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
+            reader.loadNextBatch();
+            wasmAllocationFactory.close();
+            return readBatch;
+            // do we need to run reader.close() ? Maybe in the "final" clause?
         } catch (Exception e) {
             return null;
         }
@@ -127,30 +94,16 @@ public class RelayProducer extends NoOpFlightProducer {
     @Override
     public void getStream(CallContext context, Ticket ticket,
                           ServerStreamListener listener) {
-        
-
-        WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
-        long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
         FlightStream s = client.getStream(ticket);
         VectorSchemaRoot root_in;
         VectorSchemaRoot root_out = null;
         VectorLoader loader = null;
         VectorUnloader unloader = null;
-        // final BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         boolean first = true;
-        System.out.println("relay producer");
         while (s.next()) {
             root_in = s.getRoot();
-        // System.out.println("vsr_src content: \n" + root_in.contentToTSVString());
-
-            // root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
-            // long ffi_in_ptr = TransformInterface.convertVSR2FFI(root_in);
-            // long ffi_out_ptr = TransformInterface.transformation(ffi_in_ptr);
-            // root_out = TransformInterface.createOrUpdateVSR(ffi_out_ptr, root_out);
             if (first) {
-                System.out.println("relay producer - first");
-
                 root_out = VectorSchemaRoot.create(root_in.getSchema(), allocator);
                 loader = new VectorLoader(root_out);
                 listener.setUseZeroCopy(false);
@@ -158,37 +111,16 @@ public class RelayProducer extends NoOpFlightProducer {
                 first = false;
             }
             if (transform) {
-                System.out.println("relay producer - transform");
-                // root_in.getFieldVectors().get(0).
-
-                // long ffi_in_ptr = TransformInterface.convertVSR2FFI(root_in);
-                // long ffi_out_ptr = TransformInterface.transformation(ffi_in_ptr, constVec);
-                // root_out = TransformInterface.createOrUpdateVSR(ffi_out_ptr, root_out);
-                // root_in = transformVectorSchemaRoot(root_in);
                 root_in = WASMTransformVectorSchemaRoot(root_in);
-                System.out.println("relay producer - after tranform");
-           } else {
-                System.out.println("relay producer - without transform");
-                // long ffi_in_ptr = TransformInterface.convertVSR2FFI(root_in);
-                // root_out = TransformInterface.createOrUpdateVSR(ffi_in_ptr, root_out);
            }
-
-
 
             unloader = new VectorUnloader(root_in);
             loader.load(unloader.getRecordBatch());
 
             listener.putNext();
             // System.out.println("relay producer - put next");
-    }
-        listener.completed();
-        System.out.println("relay producer - completed");
-        try {
-            wasmAllocationFactory.close();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
+        listener.completed();
 }
 
     @Override
