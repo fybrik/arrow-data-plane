@@ -1,6 +1,7 @@
 use std::io;
 use wasmer::NativeFunc;
 use wasmer::{imports, Cranelift, Instance, Module, Store, Universal};
+use wasmer_wasi::WasiState;
 
 #[repr(C)]
 pub struct CoreInstance {
@@ -10,7 +11,7 @@ pub struct CoreInstance {
     // (buffer ptr, size) -> void
     pub deallocate_buffer_func: NativeFunc<(u32, u32), ()>,
     // void -> context ptr
-    pub prepare_transform_func: NativeFunc<(), u32>,
+    pub prepare_transform_func: NativeFunc<u64, u32>,
     // context ptr -> void
     pub transform_func: NativeFunc<u32, ()>,
     // context ptr -> void
@@ -19,6 +20,7 @@ pub struct CoreInstance {
 
 #[repr(C)]
 pub struct FFI_TransformContext {
+    pub base: u64,
     pub in_schema: u32,
     pub in_array: u32,
     pub out_schema: u32,
@@ -30,9 +32,10 @@ impl CoreInstance {
     pub fn try_new(module_bytes: &[u8]) -> Result<Self, io::Error> {
         let store = Store::new(&Universal::new(Cranelift::default()).engine());
         let module = Module::new(&store, module_bytes).unwrap();
-        let import_object = imports! {
-            "env" => {}
-        };
+        let mut wasi_env = WasiState::new("transformer").finalize().unwrap();
+        // let import_object = imports! { "env" => {} };
+        let import_object = wasi_env.import_object(&module).unwrap();
+
         let instance = Instance::new(&module, &import_object).unwrap();
         
         let allocate_buffer_func = instance
@@ -47,7 +50,7 @@ impl CoreInstance {
 
         let prepare_transform_func = instance
             .exports
-            .get_native_function::<(), u32>("prepare_transform")
+            .get_native_function::<u64, u32>("prepare_transform")
             .unwrap();
 
         let transform_func = instance
@@ -92,7 +95,8 @@ impl CoreInstance {
     }
 
     pub fn prepare_transform(&self) -> u32 {
-        self.prepare_transform_func.call().unwrap()
+        let base = self.allocator_base();
+        self.prepare_transform_func.call(base).unwrap()
     }
 
     pub fn transform(&self, context: u32) {

@@ -49,7 +49,7 @@ public class ExampleFlightClient {
         while (s.next()) {
             root = s.getRoot();
             i++;
-            System.out.println(i);
+            // System.out.println(i);
             // System.out.println(root.getVector(0));
             // System.out.println(root.getVector(1));
             // System.out.println(root.getVector(2));
@@ -57,10 +57,17 @@ public class ExampleFlightClient {
         }
         long finish = System.currentTimeMillis();
 
-        System.out.println("Time spent traversing dataset: " + (finish - start) / 1000.0 + " seconds");
-        double throughput = (double) i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0);
-        System.out.println("Throughput: " + String.format("%.2f", throughput / (1024 * 1024)) + "MB/sec");
+        System.out.println("done");
+        if (root != null) {
+            System.out.println("Time spent traversing dataset: " + (finish - start) / 1000.0 + " seconds");
+            double throughput = (double) i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0);
+            System.out.println("Throughput: " + String.format("%.2f", throughput / (1024 * 1024)) + "MB/sec");    
+        }
+        s.close();
+        client.close();
 
+        System.out.println("closing");
         rootAllocator.close();
+        System.out.println("closed");
     }
 }

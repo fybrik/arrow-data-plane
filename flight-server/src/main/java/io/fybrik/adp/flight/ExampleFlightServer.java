@@ -49,7 +49,7 @@ public class ExampleFlightServer implements AutoCloseable {
         CommandLine line = parser.parse(options, args);
         String host = line.getOptionValue("host", "localhost");
         int port = Integer.parseInt(line.getOptionValue("port", "49152"));
-        String transform = line.getOptionValue("transform", "./wasm/transformer/target/wasm32-unknown-unknown/release/transformer.wasm");
+        String transform = line.getOptionValue("transform", "");
         Instance instance = null;
         RootAllocator allocator;
         Transformer transformer;
@@ -76,19 +76,15 @@ public class ExampleFlightServer implements AutoCloseable {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 System.out.println("\nExiting...");
-                AutoCloseables.close(new AutoCloseable[]{server, producer, allocator});
+                AutoCloseables.close(new AutoCloseable[]{server, producer, allocator, transformer});
                 if (instanceToClose != null) {
                     instanceToClose.close();
                 }
-            } catch (Exception var4) {
-                var4.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
         }));
         server.awaitTermination();
-        // if (instance != null) {
-        //     instance.close();
-        // }
-
     }
 }

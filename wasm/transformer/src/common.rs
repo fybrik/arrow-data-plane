@@ -5,6 +5,7 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, make_array_from_raw};
+use arrow::datatypes::Schema;
 use arrow::ffi::{FFI_ArrowArray, FFI_ArrowSchema};
 
 use crate::array::{FFI32_ArrowArray, FFI64_ArrowArray};
@@ -12,32 +13,44 @@ use crate::schema::{FFI32_ArrowSchema, FFI64_ArrowSchema};
 
 #[repr(C)]
 pub(crate) struct TransformContext {
-    in_schema: *const FFI64_ArrowSchema,
-    in_array: *const FFI64_ArrowArray,
+    base: u64,
+    in_schema: *mut FFI64_ArrowSchema,
+    in_array: *mut FFI64_ArrowArray,
     out_schema: *const FFI64_ArrowSchema,
     out_array: *const FFI64_ArrowArray,
 }
 
 impl TransformContext {
-    pub fn input(&self) -> ArrayRef {
-        let schema = unsafe {&*self.in_schema};
-        let schema = FFI32_ArrowSchema::try_from(schema).unwrap();
+    pub fn input_schema(&self) -> Option<Schema> {
+        let schema = unsafe {&mut*self.in_schema};
+        let schema = FFI32_ArrowSchema::from(self.base, schema);
+        let schema = Arc::into_raw(Arc::new(schema)) as *const FFI_ArrowSchema;
+        let schema = unsafe{&*schema};
+        println!("format {}", schema.format());
+        Schema::try_from(schema).ok()
+        // None
+    }
+
+    pub fn input(&self) -> Option<ArrayRef> {
+        let schema = unsafe {&mut*self.in_schema};
+        let schema = FFI32_ArrowSchema::from(self.base, schema);
         let schema = Arc::into_raw(Arc::new(schema)) as *const FFI_ArrowSchema;
         
-        let array = unsafe {&*self.in_array};
-        let array = FFI32_ArrowArray::try_from(array).unwrap();
+        let array = unsafe {&mut*self.in_array};
+        let array = FFI32_ArrowArray::from(self.base, array);
         let array = Arc::into_raw(Arc::new(array)) as *const FFI_ArrowArray;
         
         let result = unsafe {make_array_from_raw(array, schema)};
-        result.unwrap()
+        result.ok()
     }
 }
 
 #[no_mangle]
-pub extern "C" fn prepare_transform() -> u32 {
+pub extern "C" fn prepare_transform(base: u64) -> u32 {
     let ctx = TransformContext {
-        in_schema: Arc::into_raw(Arc::new(FFI64_ArrowSchema::empty())),
-        in_array: Arc::into_raw(Arc::new(FFI64_ArrowArray::empty())),
+        base,
+        in_schema: Arc::into_raw(Arc::new(FFI64_ArrowSchema::empty())) as *mut FFI64_ArrowSchema,
+        in_array: Arc::into_raw(Arc::new(FFI64_ArrowArray::empty())) as *mut FFI64_ArrowArray,
         out_schema: std::ptr::null_mut(),
         out_array: std::ptr::null_mut(),
     };

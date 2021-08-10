@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, mem};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -14,7 +14,15 @@ pub(crate) struct FFI32_ArrowSchema {
     private_data: u32,
 }
 
-impl FFI32_ArrowSchema {
+fn to32(base: u64, ptr: u64) -> u32 {
+    if ptr == 0 {
+        return 0;
+    }
+    (ptr - base).try_into().unwrap()
+} 
+
+
+impl FFI32_ArrowSchema {   
     pub(crate) fn empty() -> Self {
         Self {
             format: 0,
@@ -28,6 +36,51 @@ impl FFI32_ArrowSchema {
             private_data: 0,
         }
     }
+
+    pub fn from(base: u64, s64: &mut FFI64_ArrowSchema) -> Self {
+        let mut root = Self::empty();
+
+        root.format = to32(base, s64.format);
+        root.name = to32(base, s64.name);
+        root.metadata = to32(base, s64.metadata);
+        root.flags = s64.flags;
+        root.n_children = s64.n_children;
+        let children_array = to32(base, s64.children) as *const u64;
+        let child_data: Vec<FFI32_ArrowSchema> = (0..s64.n_children as usize)
+            .map(|i| {
+                let child = unsafe { children_array.add(i) };
+                let child = unsafe { *child };
+                let child = to32(base, child);
+                let child = unsafe {&mut*(child as *mut FFI64_ArrowSchema)};
+                FFI32_ArrowSchema::from(base, child)
+            })
+            .collect();
+        let children_ptr = child_data
+            .into_iter()
+            .map(Box::new)
+            .map(Box::into_raw)
+            .collect::<Box<_>>();
+        root.children = children_ptr.as_ptr() as u32;
+        mem::forget(children_ptr);
+        
+        if s64.dictionary != 0 {
+            let dictionary = to32(base, s64.dictionary) as *mut FFI64_ArrowSchema;
+            let dictionary = unsafe { &mut*dictionary };
+            let dictionary = FFI32_ArrowSchema::from(base, dictionary);
+            let dictionary = Box::from(dictionary);
+            let dictionary = Box::into_raw(dictionary);
+            root.dictionary = dictionary as u32;
+        }
+
+        root.release = Some(s64.release.unwrap() as u32);
+        // root.private_data = 
+
+        // Move old schema
+        s64.release = None;
+
+        root
+    }
+
 }
 
 #[repr(C)]
@@ -60,40 +113,55 @@ impl FFI64_ArrowSchema {
     }
 }
 
-impl From<&FFI64_ArrowSchema> for FFI32_ArrowSchema {
-    fn from(s64: &FFI64_ArrowSchema) -> Self {
-        let mut root = FFI32_ArrowSchema::empty();
+// impl From<&FFI64_ArrowSchema> for FFI32_ArrowSchema {
+//     fn from(s64: &FFI64_ArrowSchema) -> Self {
+//         let mut root = FFI32_ArrowSchema::empty();
 
-        root.format = s64.format.try_into().unwrap();
-        root.name = s64.name.try_into().unwrap();
-        root.metadata = s64.metadata.try_into().unwrap();
-        root.flags = s64.flags;
-        root.n_children = s64.n_children;
-        root.dictionary = s64.dictionary.try_into().unwrap();
+//         let format = std::ffi::CString::new("i").unwrap().into_raw();
+//         println!("64:{}", format as u64);
+//         println!("32:{}", format as u32);
+//         root.format = format as u32;
 
-        // let children = root.children as *mut u32;
-        // root.release
-        // root.private_data
+//         // TODO: problem is that all pointers include the base address
+//         let format = s64.format as *mut i8;
+//         println!("64:{}", format as u64);
+//         println!("32:{}", format as u32);
+//         root.format = format as u32;
+        
+//         // root.format = s64.format.try_into().unwrap();
+//         root.n_children = 0;
+//         root.release = Some(s64.release.unwrap() as u32);
 
-        root
-    }
-}
+//         // root.format = s64.format.try_into().unwrap();
+//         // root.name = s64.name.try_into().unwrap();
+//         // root.metadata = s64.metadata.try_into().unwrap();
+//         // root.flags = s64.flags;
+//         // root.n_children = s64.n_children;
+//         // root.dictionary = s64.dictionary.try_into().unwrap();
 
-impl From<&FFI32_ArrowSchema> for FFI64_ArrowSchema {
-    fn from(s32: &FFI32_ArrowSchema) -> Self {
-        let mut root = FFI64_ArrowSchema::empty();
+//         // let children = root.children as *mut u32;
+//         // root.release
+//         // root.private_data
 
-        root.format = s32.format.try_into().unwrap();
-        root.name = s32.name.try_into().unwrap();
-        root.metadata = s32.metadata.try_into().unwrap();
-        root.flags = s32.flags;
-        root.n_children = s32.n_children;
-        root.dictionary = s32.dictionary.try_into().unwrap();
+//         root
+//     }
+// }
 
-        // let children = root.children as *mut u32;
-        // root.release
-        // root.private_data
+// // impl From<&FFI32_ArrowSchema> for FFI64_ArrowSchema {
+// //     fn from(s32: &FFI32_ArrowSchema) -> Self {
+// //         let mut root = FFI64_ArrowSchema::empty();
 
-        root
-    }
-}
+// //         root.format = s32.format.try_into().unwrap();
+// //         root.name = s32.name.try_into().unwrap();
+// //         root.metadata = s32.metadata.try_into().unwrap();
+// //         root.flags = s32.flags;
+// //         root.n_children = s32.n_children;
+// //         root.dictionary = s32.dictionary.try_into().unwrap();
+
+// //         // let children = root.children as *mut u32;
+// //         // root.release
+// //         // root.private_data
+
+// //         root
+// //     }
+// // }

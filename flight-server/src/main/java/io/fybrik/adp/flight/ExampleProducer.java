@@ -40,6 +40,8 @@ public class ExampleProducer extends NoOpFlightProducer implements AutoCloseable
         this.allocator = allocator;
         this.transformer = transformer;
         this.constVectorSchemaRoot = this.getConstVectorSchemaRoot();
+
+        this.transformer.init(this.constVectorSchemaRoot);
     }
 
     private VectorSchemaRoot getConstVectorSchemaRoot() {
@@ -73,7 +75,6 @@ public class ExampleProducer extends NoOpFlightProducer implements AutoCloseable
     }
 
     public void getStream(CallContext context, Ticket ticket, ServerStreamListener listener) {
-        this.transformer.init(this.constVectorSchemaRoot);
         Runnable loadData = () -> {
             listener.setUseZeroCopy(true);
             VectorSchemaRoot transformedRoot = null;
@@ -82,7 +83,9 @@ public class ExampleProducer extends NoOpFlightProducer implements AutoCloseable
                 this.transformer.next();
                 if (transformedRoot == null) {
                     transformedRoot = this.transformer.root();
-                    listener.start(transformedRoot);
+                    if (transformedRoot != null) {
+                        listener.start(transformedRoot);
+                    }
                 }
 
                 if (transformedRoot != null) {
