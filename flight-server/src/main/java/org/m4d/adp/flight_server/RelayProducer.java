@@ -48,8 +48,7 @@ public class RelayProducer extends NoOpFlightProducer {
     }
 
     private VectorSchemaRoot WASMTransformVectorSchemaRoot(VectorSchemaRoot v) {
-        try {
-            WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
+        try (WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory()) {
             long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
             // Write the vector schema root to an IPC stream
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -78,12 +77,12 @@ public class RelayProducer extends NoOpFlightProducer {
             ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address + wasm_mem_address, (int) transformed_bytes_len);
             byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
             transformed_buffer.get(transformedRecordBatchByteArray);
-            
+            // Deallocate transformed bytes
+            AllocatorInterface.wasmDealloc(instance_ptr, transformed_bytes_address, transformed_bytes_len);
             // Read the byte array to get the transformed vector schema root
             ArrowStreamReader reader = new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray), allocator);
             VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
             reader.loadNextBatch();
-            wasmAllocationFactory.close();
             return readBatch;
             // do we need to run reader.close() ? Maybe in the "final" clause?
         } catch (Exception e) {

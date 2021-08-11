@@ -13,7 +13,6 @@ crate-type = ["cdylib"]
 [dependencies]
 wee_alloc = "0.4.5"
 arrow = "4.0.0"
-wasm-gc-api = "0.1.11"
 
 
 

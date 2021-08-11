@@ -125,7 +125,6 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64) -> i64 {
         let mut writer = crate::ipc::writer::StreamWriter::try_new(vec, &schema).unwrap();
         writer.write(&transformed).unwrap();
         writer.finish().unwrap();
-        mem::forget(transformed);
         let mut bytes_array = writer.into_inner().unwrap();
         let bytes_ptr = bytes_array.as_mut_ptr();
         let bytes_len = bytes_array.len();
