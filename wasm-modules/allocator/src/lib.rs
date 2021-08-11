@@ -7,10 +7,6 @@ use std::os::raw::c_void;
 use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
-extern crate wee_alloc;
-// Use `wee_alloc` as the global allocator.
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -70,7 +66,7 @@ pub fn alloc(len: i64) -> *mut c_void {
     // return the pointer so the runtime
     // can write data at this offset
     ptr as *mut c_void
-}    
+}
 
 #[no_mangle]
 pub unsafe fn dealloc(ptr: i64, size: i64) {
@@ -145,3 +141,10 @@ pub fn get_second_of_tuple(tuple_ptr: i64) -> i64 {
     let tuple = Into::<Pointer<Tuple>>::into(tuple_ptr).borrow();
     (*tuple).1
 }
+
+#[no_mangle]
+pub fn drop_tuple(tuple_ptr: i64) {
+    let tuple = Into::<Pointer<Tuple>>::into(tuple_ptr);
+    std::mem::drop(tuple.value);
+}
+

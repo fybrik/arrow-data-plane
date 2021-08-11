@@ -43,18 +43,24 @@ public class MyFlightClient {
         while (s.next()) {
             root = s.getRoot();
             i++;
-            System.out.println(i);
-            System.out.println("client");
-            System.out.println(root.getVector(0));
-            System.out.println(root.getVector(1));
-            System.out.println(root.getVector(2));
-            System.out.println(root.getVector(3));
+            // System.out.println(i);
+            // System.out.println("client");
+            // System.out.println(root.getVector(0));
+            // System.out.println(root.getVector(1));
+            // System.out.println(root.getVector(2));
+            // System.out.println(root.getVector(3));
         }
         long finish = System.currentTimeMillis();
 
         System.out.println("Time spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
         double throughput = (double)i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0);
         System.out.println("Throughput: " + String.format("%.2f", throughput / (1024*1024)) + "MB/sec");
+        try {
+            s.close();
+            client.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         a.close();
     }
 }

@@ -48,7 +48,7 @@ public class RelayProducer extends NoOpFlightProducer {
                 .build();
     }
 
-    private byte[] WASMTransformVectorSchemaRoot(long instance_ptr, byte[] recordBatchByteArray) {
+    private byte[] WASMTransformByteArray(long instance_ptr, byte[] recordBatchByteArray) {
         long length = recordBatchByteArray.length;
         // Allocate a block in wasm memory and copy the byte array to this block
         long allocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, length);
@@ -58,8 +58,8 @@ public class RelayProducer extends NoOpFlightProducer {
         
         // Transform the vector schema root that is represented as a byte array in `allocatedAddress` memory address with length `length`
         // The function returns a tuple of `(address, lenght)` of as byte array that represents the transformed vector schema root 
-        long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, allocatedAddress, length);
-        AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, length);
+        long transformed_bytes_tuple = TransformInterface.TransformationIPC(instance_ptr, allocatedAddress, length);
+        
         // Get the byte array from the memory address
         long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);
         long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(instance_ptr, transformed_bytes_tuple);
@@ -69,6 +69,7 @@ public class RelayProducer extends NoOpFlightProducer {
         transformed_buffer.get(transformedRecordBatchByteArray);
         // Deallocate transformed bytes
         AllocatorInterface.wasmDealloc(instance_ptr, transformed_bytes_address, transformed_bytes_len);
+        TransformInterface.DropTuple(instance_ptr, transformed_bytes_tuple);
         return transformedRecordBatchByteArray;
     }
 
@@ -82,6 +83,8 @@ public class RelayProducer extends NoOpFlightProducer {
         VectorUnloader unloader = null;
         ArrowStreamReader reader = null;
 
+        WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
+        long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
         boolean first = true;
         while (s.next()) {
             root_in = s.getRoot();
@@ -95,24 +98,22 @@ public class RelayProducer extends NoOpFlightProducer {
             if (transform) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 try (
-                        WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
                         ArrowStreamWriter writer = new ArrowStreamWriter(root_in, null, Channels.newChannel(out));
                 ) {
-                    long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
                     // Write the vector schema root to an IPC stream
                     writer.start();
                     writer.writeBatch();
                     writer.end();
                     // Get a byte array of the vector schema root
                     byte[] recordBatchByteArray = out.toByteArray();
-                    byte[] transformedRecordBatchByteArray = WASMTransformVectorSchemaRoot(instance_ptr, recordBatchByteArray);
+                    byte[] transformedRecordBatchByteArray = WASMTransformByteArray(instance_ptr, recordBatchByteArray);
                     // Read the byte array to get the transformed vector schema root
                     reader = new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray), allocator);
                     VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
                     reader.loadNextBatch();
                     root_in = readBatch;
 
-                }catch (Exception e) {
+                } catch (Exception e) {
                     root_in = null;
                 }
             }
@@ -120,7 +121,9 @@ public class RelayProducer extends NoOpFlightProducer {
             unloader = new VectorUnloader(root_in);
             loader.load(unloader.getRecordBatch());
             try {
-                reader.close();
+                if (reader != null) {
+                    reader.close();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -128,6 +131,13 @@ public class RelayProducer extends NoOpFlightProducer {
             listener.putNext();
         }
         listener.completed();
+
+        try {
+            s.close();
+            wasmAllocationFactory.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         System.out.println("relay producer - completed");
     }
 
