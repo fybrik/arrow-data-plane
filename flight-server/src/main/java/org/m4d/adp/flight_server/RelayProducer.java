@@ -20,6 +20,7 @@ import org.m4d.adp.transform.TransformInterface;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.nio.ByteBuffer;
@@ -47,47 +48,28 @@ public class RelayProducer extends NoOpFlightProducer {
                 .build();
     }
 
-    private VectorSchemaRoot WASMTransformVectorSchemaRoot(VectorSchemaRoot v) {
-        try (WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory()) {
-            long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
-            // Write the vector schema root to an IPC stream
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ArrowStreamWriter writer = new ArrowStreamWriter(v, null, Channels.newChannel(out));
-            writer.start();
-            writer.writeBatch();
-            writer.end();
-            // Get a byte array of the vector schema root
-            byte[] recordBatchByteArray = out.toByteArray();
-            long length = recordBatchByteArray.length;
-            // Allocate a block in wasm memory and copy the byte array to this block
-            long allocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, length);
-            long wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
-            ByteBuffer buffer = MemoryUtil.directBuffer(allocatedAddress + wasm_mem_address, (int) length);
-            buffer.put(recordBatchByteArray);
-            writer.close();
-            
-            // Transform the vector schema root that is represented as a byte array in `allocatedAddress` memory address with length `length`
-            // The function returns a tuple of `(address, lenght)` of as byte array that represents the transformed vector schema root 
-            long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, allocatedAddress, length);
-            AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, length);
-            // Get the byte array from the memory address
-            long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);
-            long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(instance_ptr, transformed_bytes_tuple);
-            wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
-            ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address + wasm_mem_address, (int) transformed_bytes_len);
-            byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
-            transformed_buffer.get(transformedRecordBatchByteArray);
-            // Deallocate transformed bytes
-            AllocatorInterface.wasmDealloc(instance_ptr, transformed_bytes_address, transformed_bytes_len);
-            // Read the byte array to get the transformed vector schema root
-            ArrowStreamReader reader = new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray), allocator);
-            VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
-            reader.loadNextBatch();
-            return readBatch;
-            // do we need to run reader.close() ? Maybe in the "final" clause?
-        } catch (Exception e) {
-            return null;
-        }
+    private byte[] WASMTransformVectorSchemaRoot(long instance_ptr, byte[] recordBatchByteArray) {
+        long length = recordBatchByteArray.length;
+        // Allocate a block in wasm memory and copy the byte array to this block
+        long allocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, length);
+        long wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
+        ByteBuffer buffer = MemoryUtil.directBuffer(allocatedAddress + wasm_mem_address, (int) length);
+        buffer.put(recordBatchByteArray);
+        
+        // Transform the vector schema root that is represented as a byte array in `allocatedAddress` memory address with length `length`
+        // The function returns a tuple of `(address, lenght)` of as byte array that represents the transformed vector schema root 
+        long transformed_bytes_tuple = TransformInterface.transformationIPC(instance_ptr, allocatedAddress, length);
+        AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, length);
+        // Get the byte array from the memory address
+        long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);
+        long transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(instance_ptr, transformed_bytes_tuple);
+        wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
+        ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address + wasm_mem_address, (int) transformed_bytes_len);
+        byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
+        transformed_buffer.get(transformedRecordBatchByteArray);
+        // Deallocate transformed bytes
+        AllocatorInterface.wasmDealloc(instance_ptr, transformed_bytes_address, transformed_bytes_len);
+        return transformedRecordBatchByteArray;
     }
 
     @Override
@@ -98,6 +80,7 @@ public class RelayProducer extends NoOpFlightProducer {
         VectorSchemaRoot root_out = null;
         VectorLoader loader = null;
         VectorUnloader unloader = null;
+        ArrowStreamReader reader = null;
 
         boolean first = true;
         while (s.next()) {
@@ -110,11 +93,37 @@ public class RelayProducer extends NoOpFlightProducer {
                 first = false;
             }
             if (transform) {
-                root_in = WASMTransformVectorSchemaRoot(root_in);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try (
+                        WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
+                        ArrowStreamWriter writer = new ArrowStreamWriter(root_in, null, Channels.newChannel(out));
+                ) {
+                    long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
+                    // Write the vector schema root to an IPC stream
+                    writer.start();
+                    writer.writeBatch();
+                    writer.end();
+                    // Get a byte array of the vector schema root
+                    byte[] recordBatchByteArray = out.toByteArray();
+                    byte[] transformedRecordBatchByteArray = WASMTransformVectorSchemaRoot(instance_ptr, recordBatchByteArray);
+                    // Read the byte array to get the transformed vector schema root
+                    reader = new ArrowStreamReader(new ByteArrayInputStream(transformedRecordBatchByteArray), allocator);
+                    VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
+                    reader.loadNextBatch();
+                    root_in = readBatch;
+
+                }catch (Exception e) {
+                    root_in = null;
+                }
             }
 
             unloader = new VectorUnloader(root_in);
             loader.load(unloader.getRecordBatch());
+            try {
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             listener.putNext();
         }
