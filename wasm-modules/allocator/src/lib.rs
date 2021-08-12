@@ -7,6 +7,7 @@ use std::os::raw::c_void;
 use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
+use arrow::compute::add;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -77,14 +78,20 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
 
 pub fn transform_record_batch(record_in: RecordBatch) -> RecordBatch {
     let num_cols = record_in.num_columns();
-    let num_rows = record_in.num_rows();
-    // Build a zero array
-    let struct_array = Int64Array::from(vec![0; num_rows]);
-    let new_column = Arc::new(struct_array);
+
     // Get the columns except the last column
     let columns: &[ArrayRef] = record_in.columns();
     let first_columns = columns[0..num_cols-1].to_vec();
-    // Create a new array with the same columns expect the last where it will be zero column
+
+    // Create a transformed record batch with the same schema and the new array
+    let col0 = columns[0].data();
+    let pa0 = Int64Array::from(col0.clone());
+
+    let col1 = columns[1].data();
+    let pa1 = Int64Array::from(col1.clone());
+
+    let new_column = Arc::new(add(&pa0, &pa1).unwrap());
+
     let new_array = [first_columns, vec![new_column]].concat();
     // Create a transformed record batch with the same schema and the new array
     let transformed_record = RecordBatch::try_new(
