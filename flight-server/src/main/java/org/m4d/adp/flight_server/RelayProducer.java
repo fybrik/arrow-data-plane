@@ -54,7 +54,7 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         buffer.put(recordBatchByteArray, 0, size);
 
         // Transform the vector schema root that is represented as a byte array in
-        // `allocatedAddress` memory address with length `length`
+        // `allocatedAddress` memory address with length `size`
         // The function returns a tuple of `(address, lenght)` of as byte array that
         // represents the transformed vector schema root
         long transformed_bytes_tuple = TransformInterface.TransformationIPC(instance_ptr, allocatedAddress, size);
