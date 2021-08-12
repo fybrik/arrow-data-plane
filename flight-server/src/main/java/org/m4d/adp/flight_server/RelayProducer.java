@@ -68,7 +68,6 @@ public class RelayProducer extends NoOpFlightProducer {
         byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
         transformed_buffer.get(transformedRecordBatchByteArray);
         // Deallocate transformed bytes
-        AllocatorInterface.wasmDealloc(instance_ptr, transformed_bytes_address, transformed_bytes_len);
         TransformInterface.DropTuple(instance_ptr, transformed_bytes_tuple);
         return transformedRecordBatchByteArray;
     }

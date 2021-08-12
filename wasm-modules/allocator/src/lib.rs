@@ -122,6 +122,7 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64) -> i64 {
         writer.write(&transformed).unwrap();
         writer.finish().unwrap();
         let mut bytes_array = writer.into_inner().unwrap();
+        bytes_array.shrink_to_fit();
         let bytes_ptr = bytes_array.as_mut_ptr();
         let bytes_len = bytes_array.len();
         mem::forget(bytes_array);
@@ -145,6 +146,9 @@ pub fn get_second_of_tuple(tuple_ptr: i64) -> i64 {
 #[no_mangle]
 pub fn drop_tuple(tuple_ptr: i64) {
     let tuple = Into::<Pointer<Tuple>>::into(tuple_ptr);
-    std::mem::drop(tuple.value);
+    let tuple = tuple.deref();
+    unsafe {
+        drop(Vec::from_raw_parts(tuple.0 as *mut u8, tuple.1 as usize, tuple.1 as usize));
+    };
 }
 
