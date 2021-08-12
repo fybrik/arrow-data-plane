@@ -20,14 +20,18 @@ public class ExampleFlightServer implements AutoCloseable {
 
     private final FlightServer flightServer;
     private final BufferAllocator allocator;
-
+    private final FlightProducer producer;
     @Override
     public void close() throws Exception {
         AutoCloseables.close(flightServer, allocator);
+        if (producer instanceof AutoCloseable) {
+            AutoCloseables.close((AutoCloseable)producer);
+        }
     }
 
     public ExampleFlightServer(BufferAllocator incomingAllocator, Location location, NoOpFlightProducer producer) {
         this.allocator = incomingAllocator.newChildAllocator("flight-server", 0, Long.MAX_VALUE);
+        this.producer = producer;
         this.flightServer = FlightServer.builder(this.allocator, location, producer).build();
     }
 
@@ -52,6 +56,7 @@ public class ExampleFlightServer implements AutoCloseable {
     public static void main(String[] args) throws Exception {
         boolean relay = false;
         boolean transform = false;
+        boolean zeroCopy = false;
         String host;
         int port;
         String remote_host = null;
@@ -63,6 +68,7 @@ public class ExampleFlightServer implements AutoCloseable {
         options.addOption("a", "alloc", true, "Allocation type");
         options.addOption("s", "server_type", true, "Server type");
         options.addOption("t", "transformation", true, "relay transformation(true/false)");
+        options.addOption("z", "zero_copy", true, "Use zero copy in grpc layer (true/false)");
         options.addOption("h", "host", true, "Host");
         options.addOption("p", "port", true, "Port");
         options.addOption("rh", "remote_host", true, "Remote host");
@@ -80,6 +86,7 @@ public class ExampleFlightServer implements AutoCloseable {
         if (server_type_arg.equals("relay")) {
             relay = true;
             transform = Boolean.valueOf(line.getOptionValue("transformation", "false"));
+            zeroCopy = Boolean.valueOf(line.getOptionValue("zero_copy", "false"));
             remote_host = line.getOptionValue("remote_host", "localhost");
             remote_port = Integer.valueOf(line.getOptionValue("remote_port", "12233"));
         }
@@ -91,7 +98,7 @@ public class ExampleFlightServer implements AutoCloseable {
         if (relay) {
             location = Location.forGrpcInsecure(host, port);
             Location remote_location = Location.forGrpcInsecure(remote_host, remote_port);
-            producer = new RelayProducer(location, remote_location, a, transform);
+            producer = new RelayProducer(location, remote_location, a, transform, zeroCopy);
         } else {
             location = Location.forGrpcInsecure(host, port);
             producer = new ExampleProducer(location, a);

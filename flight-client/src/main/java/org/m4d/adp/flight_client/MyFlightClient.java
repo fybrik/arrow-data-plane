@@ -58,6 +58,7 @@ public class MyFlightClient {
         try {
             s.close();
             client.close();
+            allocator.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
