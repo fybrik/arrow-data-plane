@@ -14,7 +14,8 @@ sourceSets {
 task buildRust(type: Exec) {
     description "Build the Rust project."
 
-    commandLine 'cargo', 'build', '--target', 'wasm32-unknown-unknown', '--release'
+    commandLine 'cargo', 'build', '--target', 'wasm32-wasi', '--release'
+    commandLine 'wasm-opt', '-O2', 'target/wasm32-wasi/release/alloc.wasm', '-o', 'target/wasm32-wasi/release/alloc.wasm'
 }
 
 compileTestJava.dependsOn buildRust
