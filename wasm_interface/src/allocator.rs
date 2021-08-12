@@ -1,4 +1,5 @@
-use wasmer::{Cranelift, Instance, Module, Store, Universal, imports};
+use wasmer::{Cranelift, Instance, Module, Store, Universal};
+use wasmer_wasi::WasiState;
 use crate::types::{WasmModule, Pointer};
 
 // A function that takes a path to `.wasm` file and returns a Pointer of type WasmModule.
@@ -8,9 +9,8 @@ pub fn wasmInstance(path: String) -> i64{
     let store = Store::new(&Universal::new(Cranelift::default()).engine());
     // Compiling the Wasm module.
     let module = Module::new(&store, wasm_bytes_file).unwrap();
-    let import_object = imports! {
-        "env" => {}
-    };
+    let mut wasi_env = WasiState::new("transformer").finalize().unwrap();
+    let import_object = wasi_env.import_object(&module).unwrap();
     let instance = Instance::new(&module, &import_object).unwrap();
     let alloc = instance.exports.get_native_function::<i64,i32>("alloc").unwrap();
     let dealloc = instance.exports.get_native_function::<(i64,i64),()>("dealloc").unwrap();

@@ -16,14 +16,15 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Flight Producer for flight server that returns a single dataset.
- *  The dataset consists of a 1000 identical record batches. The record
- *  batch is in memory, has 4 integer columns of size 1024*1024.
+/**
+ * Flight Producer for flight server that returns a single dataset. The dataset
+ * consists of a 1000 identical record batches. The record batch is in memory,
+ * has 4 integer columns of size 1024*1024.
  */
 public class ExampleProducer extends NoOpFlightProducer {
     private final Location location;
     private final BufferAllocator allocator;
-    private final int RecordsPerBatch = 1024*1024;
+    private final int RecordsPerBatch = 1024 * 1024;
     private final VectorSchemaRoot constVectorSchemaRoot;
     private boolean isNonBlocking = false;
 
@@ -34,15 +35,14 @@ public class ExampleProducer extends NoOpFlightProducer {
     }
 
     private VectorSchemaRoot getConstVectorSchemaRoot() {
-        final Schema schema = new Schema(ImmutableList.of(
-                Field.nullable("a", Types.MinorType.BIGINT.getType()),
+        final Schema schema = new Schema(ImmutableList.of(Field.nullable("a", Types.MinorType.BIGINT.getType()),
                 Field.nullable("b", Types.MinorType.BIGINT.getType()),
                 Field.nullable("c", Types.MinorType.BIGINT.getType()),
-                Field.nullable("d", Types.MinorType.BIGINT.getType())
-        ));
-        //Schema schema = Schema.deserialize(ByteBuffer.wrap(perf.getSchema().toByteArray()));
+                Field.nullable("d", Types.MinorType.BIGINT.getType())));
+        // Schema schema =
+        // Schema.deserialize(ByteBuffer.wrap(perf.getSchema().toByteArray()));
         VectorSchemaRoot root = VectorSchemaRoot.create(schema, allocator);
-        //root.allocateNew();
+        // root.allocateNew();
         BigIntVector a = (BigIntVector) root.getVector("a");
         BigIntVector b = (BigIntVector) root.getVector("b");
         BigIntVector c = (BigIntVector) root.getVector("c");
@@ -60,12 +60,12 @@ public class ExampleProducer extends NoOpFlightProducer {
 
     @Override
     public void getStream(FlightProducer.CallContext context, Ticket ticket,
-                          FlightProducer.ServerStreamListener listener) {
+            FlightProducer.ServerStreamListener listener) {
         final Runnable loadData = () -> {
             listener.setUseZeroCopy(true);
             listener.start(this.constVectorSchemaRoot);
-            for (int i=0; i<1000; i++) {
-                //System.out.println("Example putNext()");
+            for (int i = 0; i < 1000; i++) {
+                // System.out.println("Example putNext()");
                 listener.putNext();
             }
             listener.completed();
@@ -81,21 +81,17 @@ public class ExampleProducer extends NoOpFlightProducer {
     }
 
     @Override
-    public FlightInfo getFlightInfo(FlightProducer.CallContext context,
-                                    FlightDescriptor descriptor) {
+    public FlightInfo getFlightInfo(FlightProducer.CallContext context, FlightDescriptor descriptor) {
         Preconditions.checkArgument(descriptor.isCommand());
-        //Perf exec = Perf.parseFrom(descriptor.getCommand());
+        // Perf exec = Perf.parseFrom(descriptor.getCommand());
 
-        final Schema pojoSchema = new Schema(ImmutableList.of(
-                Field.nullable("a", Types.MinorType.BIGINT.getType()),
+        final Schema pojoSchema = new Schema(ImmutableList.of(Field.nullable("a", Types.MinorType.BIGINT.getType()),
                 Field.nullable("b", Types.MinorType.BIGINT.getType()),
                 Field.nullable("c", Types.MinorType.BIGINT.getType()),
-                Field.nullable("d", Types.MinorType.BIGINT.getType())
-        ));
+                Field.nullable("d", Types.MinorType.BIGINT.getType())));
 
         int streamCount = 1;
-        PerfOuterClass.Token token = PerfOuterClass.Token.newBuilder()
-                .build();
+        PerfOuterClass.Token token = PerfOuterClass.Token.newBuilder().build();
         final Ticket ticket = new Ticket(token.toByteArray());
 
         List<FlightEndpoint> endpoints = new ArrayList<>();
