@@ -11,7 +11,4 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-arrow = "4.0.0"
-
-
-
+arrow = {version = "5.1.0", default-features = false, features = ["ipc", "simd"]}

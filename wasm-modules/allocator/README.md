@@ -2,8 +2,18 @@
 
 Run the following command to get a .wasm file:
 
-`cargo build --target wasm32-wasi --release`
+```
+cargo build --target wasm32-wasi --release
+```
 
-Optimize with:
+To optimize the module install `wasm-opt`, e.g.:
 
-`wasm-opt -O2 target/wasm32-wasi/release/alloc.wasm -o target/wasm32-wasi/release/alloc.wasm`
+```bash
+sudo apt-get install binaryen
+```
+
+Then run:
+
+```bash
+wasm-opt -O2 target/wasm32-wasi/release/alloc.wasm -o target/wasm32-wasi/release/alloc.wasm
+```
