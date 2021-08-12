@@ -14,18 +14,20 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 
 /**
- * An Example Flight Server that provides access to the InMemoryStore. Used for integration testing.
+ * An Example Flight Server that provides access to the InMemoryStore. Used for
+ * integration testing.
  */
 public class ExampleFlightServer implements AutoCloseable {
 
     private final FlightServer flightServer;
     private final BufferAllocator allocator;
     private final FlightProducer producer;
+
     @Override
     public void close() throws Exception {
         AutoCloseables.close(flightServer, allocator);
         if (producer instanceof AutoCloseable) {
-            AutoCloseables.close((AutoCloseable)producer);
+            AutoCloseables.close((AutoCloseable) producer);
         }
     }
 
@@ -44,14 +46,12 @@ public class ExampleFlightServer implements AutoCloseable {
     }
 
     private static BufferAllocator createWasmAllocator(AllocationManager.Factory factory) {
-        return new RootAllocator(RootAllocator.configBuilder().allocationManagerFactory(factory)
-            .build());
+        return new RootAllocator(RootAllocator.configBuilder().allocationManagerFactory(factory).build());
     }
 
     /**
-     *  Main method starts the flight server.
-     *  This server is either the memory server (using ExampleProducer) or
-     *  a relay server (using RelayProducer). 
+     * Main method starts the flight server. This server is either the memory server
+     * (using ExampleProducer) or a relay server (using RelayProducer).
      */
     public static void main(String[] args) throws Exception {
         boolean relay = false;
@@ -74,9 +74,9 @@ public class ExampleFlightServer implements AutoCloseable {
         options.addOption("rh", "remote_host", true, "Remote host");
         options.addOption("rp", "remote_port", true, "Remote port");
 
-        CommandLine line = parser.parse( options, args );
+        CommandLine line = parser.parse(options, args);
         String allocator_type = line.getOptionValue("alloc", "Root");
-        if(allocator_type.equals("wasm")) {
+        if (allocator_type.equals("wasm")) {
             WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory();
             a = createWasmAllocator(wasmAllocationFactory);
         } else {
@@ -92,7 +92,7 @@ public class ExampleFlightServer implements AutoCloseable {
         }
         host = line.getOptionValue("host", "0.0.0.0");
         port = Integer.valueOf(line.getOptionValue("port", "12232"));
-        
+
         final Location location;
         final NoOpFlightProducer producer;
         if (relay) {

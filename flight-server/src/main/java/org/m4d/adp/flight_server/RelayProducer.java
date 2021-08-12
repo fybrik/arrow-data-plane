@@ -185,6 +185,6 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        this.client.close();        
+        this.client.close();
     }
 }
