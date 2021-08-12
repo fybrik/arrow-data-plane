@@ -34,4 +34,8 @@ public class WasmAllocationFactory implements AllocationManager.Factory, AutoClo
         AllocatorInterface.wasmDrop(instancePtr);
         
     }
+
+    public long wasmInstancePtr() {
+        return instancePtr;
+    }
 };
