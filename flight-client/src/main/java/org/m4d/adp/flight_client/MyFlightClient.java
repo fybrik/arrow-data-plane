@@ -45,10 +45,13 @@ public class MyFlightClient {
             i++;
             // System.out.println(i);
             // System.out.println("client");
-            // System.out.println(root.getVector(0));
-            // System.out.println(root.getVector(1));
-            // System.out.println(root.getVector(2));
-            // System.out.println(root.getVector(3));
+            System.out.println(root.getVector(0));
+            System.out.println(root.getVector(1));
+            System.out.println(root.getVector(2));
+            System.out.println(root.getVector(3));
+            System.out.println(root.getVector(4));
+            System.out.println(root.getVector(5));
+            System.out.println(root.getVector(6));
         }
         long finish = System.currentTimeMillis();
 
