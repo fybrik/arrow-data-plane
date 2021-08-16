@@ -67,12 +67,12 @@ public class MyFlightClient {
         BigIntVector postcodes = (BigIntVector) root.getVector(6);
 
         for (int j = 0; j < root.getRowCount(); j++) {
-            System.out.print(names.get(j) + ",");
+            System.out.print(new String(names.get(j)) + ",");
             System.out.print(ages.get(j) + ",");
             System.out.print(building_numbers.get(j) + ",");
-            System.out.print(streets.get(j) + ",");
-            System.out.print(cities.get(j) + ",");
-            System.out.print(countries.get(j) + ",");
+            System.out.print(new String(streets.get(j)) + ",");
+            System.out.print(new String(cities.get(j)) + ",");
+            System.out.print(new String(countries.get(j)) + ",");
             System.out.println(postcodes.get(j));
         }
 
