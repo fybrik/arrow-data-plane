@@ -7,8 +7,8 @@ use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
 use arrow::datatypes::Int64Type;
-use arrow::compute::kernels::comparison::no_simd_compare_op_scalar;
 use arrow::compute::kernels::filter::filter_record_batch;
+use arrow::compute::kernels::comparison::gt_scalar;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -85,7 +85,7 @@ pub fn transform_record_batch(record_in: RecordBatch) -> RecordBatch {
     let col1 = columns[1].data();
     let pa1 = Int64Array::from(col1.clone());
 
-    let bool_arr = no_simd_compare_op_scalar::<Int64Type, _>(&pa1, 18, |x, y| x > y).unwrap();
+    let bool_arr = gt_scalar::<Int64Type>(&pa1, 18).unwrap();
     // Create a transformed record batch with the same schema and the new array
     let transformed_record = filter_record_batch(&record_in, &bool_arr).unwrap();
     transformed_record
