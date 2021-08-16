@@ -1,13 +1,14 @@
 
 use std::mem;
-use std::sync::Arc;
 use std::ops::Deref;
 use std::io::Cursor;
 use std::os::raw::c_void;
 use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
-use arrow::compute::add;
+use arrow::datatypes::Int64Type;
+use arrow::compute::kernels::comparison::no_simd_compare_op_scalar;
+use arrow::compute::kernels::filter::filter_record_batch;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -75,29 +76,18 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
     std::mem::drop(data);
 }    
 
-
 pub fn transform_record_batch(record_in: RecordBatch) -> RecordBatch {
-    let num_cols = record_in.num_columns();
-
     // Get the columns except the last column
     let columns: &[ArrayRef] = record_in.columns();
-    let first_columns = columns[0..num_cols-1].to_vec();
 
-    // Create a transformed record batch with the same schema and the new array
-    let col0 = columns[0].data();
-    let pa0 = Int64Array::from(col0.clone());
-
+    // We begin by generating a boolean vector, indicating whether the
+    // row corresponds to an underage individual
     let col1 = columns[1].data();
     let pa1 = Int64Array::from(col1.clone());
 
-    let new_column = Arc::new(add(&pa0, &pa1).unwrap());
-
-    let new_array = [first_columns, vec![new_column]].concat();
+    let bool_arr = no_simd_compare_op_scalar::<Int64Type, _>(&pa1, 18, |x, y| x > y).unwrap();
     // Create a transformed record batch with the same schema and the new array
-    let transformed_record = RecordBatch::try_new(
-        record_in.schema(),
-        new_array
-    ).unwrap();
+    let transformed_record = filter_record_batch(&record_in, &bool_arr).unwrap();
     transformed_record
 }
 
