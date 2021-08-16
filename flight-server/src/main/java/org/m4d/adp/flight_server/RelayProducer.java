@@ -147,10 +147,13 @@ public class RelayProducer extends NoOpFlightProducer {
         //Perf exec = Perf.parseFrom(descriptor.getCommand());
 
         final Schema pojoSchema = new Schema(ImmutableList.of(
-                Field.nullable("a", Types.MinorType.BIGINT.getType()),
-                Field.nullable("b", Types.MinorType.BIGINT.getType()),
-                Field.nullable("c", Types.MinorType.BIGINT.getType()),
-                Field.nullable("d", Types.MinorType.BIGINT.getType())
+                Field.nullable("name", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("age", Types.MinorType.BIGINT.getType()),
+                Field.nullable("street_number", Types.MinorType.BIGINT.getType()),
+                Field.nullable("street", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("city", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("country", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("postcode", Types.MinorType.BIGINT.getType())
         ));
 
         int streamCount = 1;
