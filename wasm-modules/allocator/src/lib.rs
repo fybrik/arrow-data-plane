@@ -1,12 +1,14 @@
 
 use std::mem;
-use std::sync::Arc;
 use std::ops::Deref;
 use std::io::Cursor;
 use std::os::raw::c_void;
 use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
+use arrow::datatypes::Int64Type;
+use arrow::compute::kernels::filter::filter_record_batch;
+use arrow::compute::kernels::comparison::gt_scalar;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -74,23 +76,18 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
     std::mem::drop(data);
 }    
 
-
 pub fn transform_record_batch(record_in: RecordBatch) -> RecordBatch {
-    let num_cols = record_in.num_columns();
-    let num_rows = record_in.num_rows();
-    // Build a zero array
-    let struct_array = Int64Array::from(vec![0; num_rows]);
-    let new_column = Arc::new(struct_array);
     // Get the columns except the last column
     let columns: &[ArrayRef] = record_in.columns();
-    let first_columns = columns[0..num_cols-1].to_vec();
-    // Create a new array with the same columns expect the last where it will be zero column
-    let new_array = [first_columns, vec![new_column]].concat();
+
+    // We begin by generating a boolean vector, indicating whether the
+    // row corresponds to an underage individual
+    let col1 = columns[1].data();
+    let pa1 = Int64Array::from(col1.clone());
+
+    let bool_arr = gt_scalar::<Int64Type>(&pa1, 18).unwrap();
     // Create a transformed record batch with the same schema and the new array
-    let transformed_record = RecordBatch::try_new(
-        record_in.schema(),
-        new_array
-    ).unwrap();
+    let transformed_record = filter_record_batch(&record_in, &bool_arr).unwrap();
     transformed_record
 }
 

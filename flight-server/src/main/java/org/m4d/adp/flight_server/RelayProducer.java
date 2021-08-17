@@ -166,10 +166,15 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         Preconditions.checkArgument(descriptor.isCommand());
         // Perf exec = Perf.parseFrom(descriptor.getCommand());
 
-        final Schema pojoSchema = new Schema(ImmutableList.of(Field.nullable("a", Types.MinorType.BIGINT.getType()),
-                Field.nullable("b", Types.MinorType.BIGINT.getType()),
-                Field.nullable("c", Types.MinorType.BIGINT.getType()),
-                Field.nullable("d", Types.MinorType.BIGINT.getType())));
+        final Schema pojoSchema = new Schema(ImmutableList.of(
+                Field.nullable("name", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("age", Types.MinorType.BIGINT.getType()),
+                Field.nullable("street_number", Types.MinorType.BIGINT.getType()),
+                Field.nullable("street", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("city", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("country", Types.MinorType.VARCHAR.getType()),
+                Field.nullable("postcode", Types.MinorType.BIGINT.getType())
+        ));
 
         int streamCount = 1;
         PerfOuterClass.Token token = PerfOuterClass.Token.newBuilder().build();
