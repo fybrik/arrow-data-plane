@@ -58,7 +58,7 @@ public class MyFlightClient {
         }
         long finish = System.currentTimeMillis();
 
-        VarCharVector names = (VarCharVector) root.getVector(0);
+        /* VarCharVector names = (VarCharVector) root.getVector(0);
         BigIntVector ages = (BigIntVector) root.getVector(1);
         BigIntVector building_numbers = (BigIntVector) root.getVector(2);
         VarCharVector streets = (VarCharVector) root.getVector(3);
@@ -74,12 +74,13 @@ public class MyFlightClient {
             System.out.print(new String(cities.get(j)) + ",");
             System.out.print(new String(countries.get(j)) + ",");
             System.out.println(postcodes.get(j));
-        }
+        } */
+	System.out.print(root.contentToTSVString());
 
 
-        System.out.println("\nTime spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
-        double throughput = (double)i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0);
-        System.out.println("Throughput: " + String.format("%.2f", throughput / (1024*1024)) + "MB/sec");
+        // System.out.println("\nTime spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
+        // double throughput = (double)i * 951458 / ((finish - start) / 1000.0);
+        // System.out.println("Throughput: " + String.format("%.2f", throughput / (1024*1024)) + "MB/sec");
         try {
             s.close();
             client.close();
