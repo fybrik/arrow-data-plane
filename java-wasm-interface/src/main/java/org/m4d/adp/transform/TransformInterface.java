@@ -32,6 +32,8 @@ public class TransformInterface {
     public static native long GetFirstElemOfTuple(long instance_ptr, long tuple_ptr);
     public static native long GetSecondElemOfTuple(long instance_ptr, long tuple_ptr);
     public static native void DropTuple(long instance_ptr, long tuple_ptr);
-    public static native long TransformationIPC(long instance_ptr, long allocatedAddress, long size);
+    public static native long TransformationIPC(long instance_ptr, long allocatedAddress, long size, long confAllocatedAddress, long confSize); 
+    // how to add configuration parameters? from which type? 
+    //maybe to allocate a block of memory for the configuration and send a pointer to it?
 
 } 

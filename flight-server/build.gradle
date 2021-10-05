@@ -11,7 +11,10 @@ dependencies {
     implementation 'org.apache.arrow:arrow-vector:4.0.0'
     implementation 'org.apache.arrow:arrow-tools:4.0.0'
     implementation 'org.apache.arrow:flight-core:4.0.0'
+    implementation 'com.google.code.gson:gson:2.8.8'
     implementation project(':java-wasm-interface')
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.27'
+    compile('com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.4')
 }
 
 task fatJar(type: Jar) {

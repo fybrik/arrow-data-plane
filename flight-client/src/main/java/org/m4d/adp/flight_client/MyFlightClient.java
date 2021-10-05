@@ -43,10 +43,10 @@ public class MyFlightClient {
         while (s.next()) {
             root = s.getRoot();
             i++;
-            // System.out.println(i);
+            System.out.println(i);
             // System.out.println("client");
-            // System.out.println(root.getVector(0));
-            // System.out.println(root.getVector(1));
+            System.out.println(root.getVector(0));
+            System.out.println(root.getVector(1));
             // System.out.println(root.getVector(2));
             // System.out.println(root.getVector(3));
         }
