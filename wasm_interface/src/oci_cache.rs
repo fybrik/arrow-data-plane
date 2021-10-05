@@ -6,15 +6,21 @@ use oci_distribution::{ manifest, secrets::RegistryAuth, Client};
 // Entries stay for no more than an hour.
 // Only `Ok` results are cached.
 #[cached(size=5, time=3600, result=true)]
-pub fn cached_pull_wasm_module(username: String, password: String, reference: String) -> Result<Vec<u8>> {
+pub fn cached_pull_wasm_module(username: Option<String>, password: Option<String>, reference: String) -> Result<Vec<u8>> {
     return pull_wasm_module(username, password, reference);
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn pull_wasm_module(username: String, password: String, reference: String) -> Result<Vec<u8>> {
+async fn pull_wasm_module(username: Option<String>, password: Option<String>, reference: String) -> Result<Vec<u8>> {
     let reference = reference.parse()?;
     let mut client = Client::default();
-    let registry_auth = RegistryAuth::Basic(username.parse()?, password.parse()?);
+    let registry_auth: RegistryAuth;
+    if username.is_some() && password.is_some() {
+        registry_auth = RegistryAuth::Basic(username.unwrap().parse()?, password.unwrap().parse()?);
+    } else {
+        registry_auth = RegistryAuth::Anonymous;
+    }
+
     let img = client
         .pull(
             &reference,

@@ -11,7 +11,7 @@ pub fn wasmInstance(path: String) -> i64 {
     println!("gg");
     // let wasm_bytes_file = std::fs::read(path).unwrap();
     ////oci////
-    let wasm_bytes_file = oci_cache::cached_pull_wasm_module("the-mesh-for-data".to_string(), "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".to_string(), path).unwrap();
+    let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
     ////oci////
     let store = Store::new(&Universal::new(Cranelift::default()).engine());
     // Compiling the Wasm module.
