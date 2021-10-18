@@ -4,9 +4,10 @@
 use std::convert::TryFrom;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, make_array_from_raw};
+use arrow::array::{Array, ArrayRef, Int32Array, StructArray, make_array_from_raw};
 use arrow::datatypes::Schema;
 use arrow::ffi::{FFI_ArrowArray, FFI_ArrowSchema};
+use arrow::record_batch::RecordBatch;
 
 use crate::array::{FFI32_ArrowArray, FFI64_ArrowArray};
 use crate::schema::{FFI32_ArrowSchema, FFI64_ArrowSchema};
@@ -42,6 +43,15 @@ impl TransformContext {
         
         let result = unsafe {make_array_from_raw(array, schema)};
         result.ok()
+    }
+
+    pub fn output(&self, rb: RecordBatch) {
+        // let array = Int32Array::from(vec![Some(1), None, Some(3)]);
+        // array.to_raw();
+        let as_struct = Arc::new(StructArray::from(rb));
+        let (array,  schema)= as_struct.to_raw().unwrap();
+        self.out_schema = FFI64_ArrowSchema::from(self.base, schema) ;
+        self.out_array = array;
     }
 }
 

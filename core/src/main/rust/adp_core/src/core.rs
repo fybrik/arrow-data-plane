@@ -1,6 +1,6 @@
 use std::io;
 use wasmer::NativeFunc;
-use wasmer::{imports, Cranelift, Instance, Module, Store, Universal};
+use wasmer::{Cranelift, Instance, Module, Store, Universal};
 use wasmer_wasi::WasiState;
 
 #[repr(C)]

@@ -57,12 +57,12 @@ public class WasmTransformer implements Transformer {
         System.out.println("fill input schema");
         // long schemaPtr = JniWrapper.get().getInputSchema(this.instancePtr, context);
         ArrowSchema inputSchema = ArrowSchema.wrap(base + schemaPtr);
-        FFI.exportSchema(allocator, originalRoot.getSchema(), inputSchema);
+        FFI.exportSchema(allocator, originalRoot.getSchema(), null, inputSchema);
         
         System.out.println("fill input array");
         // long arrayPtr = JniWrapper.get().getInputArray(this.instancePtr, context);
         ArrowArray inputArray = ArrowArray.wrap(base + arrayPtr);
-        FFI.exportVectorSchemaRoot(allocator, originalRoot, inputArray);
+        FFI.exportVectorSchemaRoot(allocator, originalRoot, null, inputArray);
         
         JniWrapper.get().transform(instancePtr, context);
         

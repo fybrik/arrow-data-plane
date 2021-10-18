@@ -21,6 +21,12 @@ fn to32(base: u64, ptr: u64) -> u32 {
     (ptr - base).try_into().unwrap()
 } 
 
+fn to64(base: u64, ptr: u32) -> u64 {
+    if ptr == 0 {
+        return 0;
+    }
+    base + ptr as u64
+} 
 
 impl FFI32_ArrowSchema {   
     pub(crate) fn empty() -> Self {
@@ -111,6 +117,57 @@ impl FFI64_ArrowSchema {
             private_data: 0,
         }
     }
+
+    pub fn from(base: u64, s32: &mut FFI32_ArrowSchema) -> Self {
+        let mut root = Self::empty();
+
+        root.format = to64(base, s32.format);
+        root.name = to64(base, s32.name);
+        root.metadata = to64(base, s32.metadata);
+        root.flags = s32.flags;
+        root.n_children = s32.n_children;
+        // let children_array = to64(base, s32.children) as *const u32;
+        let children_array = s32.children as *const u32;
+        let child_data: Vec<FFI64_ArrowSchema> = (0..s32.n_children as usize)
+            .map(|i| {
+                let child = unsafe { children_array.add(i) };
+                let child = unsafe { *child };
+                // let child = to64(base, child);
+                let child = unsafe {&mut*(child as *mut FFI32_ArrowSchema)};
+                FFI64_ArrowSchema::from(base, child)
+            }).collect();
+            // .map(|i| {
+            //     let child = unsafe { children_array.add(i) };
+            //     let child = unsafe { *child };
+            //     child as u64
+            // }).collect();
+
+        let children_ptr = child_data
+            .into_iter()
+            .map(Box::new)
+            .map(Box::into_raw)
+            .collect::<Box<_>>();
+        root.children = children_ptr.as_ptr() as u32;
+        mem::forget(children_ptr);
+        
+        if s64.dictionary != 0 {
+            let dictionary = to32(base, s64.dictionary) as *mut FFI64_ArrowSchema;
+            let dictionary = unsafe { &mut*dictionary };
+            let dictionary = FFI32_ArrowSchema::from(base, dictionary);
+            let dictionary = Box::from(dictionary);
+            let dictionary = Box::into_raw(dictionary);
+            root.dictionary = dictionary as u32;
+        }
+
+        root.release = Some(s64.release.unwrap() as u32);
+        // root.private_data = 
+
+        // Move old schema
+        s64.release = None;
+
+        root
+    }
+
 }
 
 // impl From<&FFI64_ArrowSchema> for FFI32_ArrowSchema {
