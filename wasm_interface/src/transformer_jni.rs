@@ -17,7 +17,7 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_Transformat
     // Get the wasm module instance and the functions we want to use
     let wasm_module = Into::<Pointer<WasmModule>>::into(wasm_module_ptr).borrow();
     let instance = &wasm_module.instance;
-    let read_transform_write_from_bytes_wasm = instance.exports.get_function("read_transform_write_from_bytes").unwrap().native::<(i64, i64), i64>().unwrap();
+    let read_transform_write_from_bytes_wasm = instance.exports.get_function("read_transform_write_from_bytes").unwrap().native::<(i64, i64, i64, i64), i64>().unwrap();
 
 
     ////conf////
@@ -32,16 +32,18 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_Transformat
     // println!("conf str = {:?}", json_str);
     let json: Value = serde_json::from_str(json_str).unwrap();
     println!("json = {:?}", json);
-    // println!("json = {:?}", json["data"]);
+    // Object({"columns": Array([String("age")])})
+    let x = json["value"].as_i64().unwrap();
+    println!("json = {:?}", x);
     // println!("json = {:?}", json["data"][0]["transformations"][0]["action"]);
     mem::forget(conf_bytes_array);
     ////conf////
     
-    
+
     
     // Call the function that read the bytes in the `address` parameter and getting the appropriate record batch
     // Then, it makes a transformation, writes back the transformed record batch, and returns a tuple of `(address, len)` of the transformed batch
-    let transformed_tuple = read_transform_write_from_bytes_wasm.call(address as i64, length as i64).unwrap();
+    let transformed_tuple = read_transform_write_from_bytes_wasm.call(address as i64, length as i64, confAddress as i64, confSize as i64).unwrap();
     transformed_tuple
 }
 

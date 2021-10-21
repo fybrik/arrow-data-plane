@@ -6,6 +6,7 @@ RUN apt-get update \
 COPY logging.xml /root
 COPY flight-server-all.jar /root/
 COPY run_relay_server2.sh /root/
+COPY alloc.wasm /root/
 
-# CMD ["/root/run_relay_server2.sh"]
-CMD ["sleep", "365d"]
+CMD ["/root/run_relay_server2.sh", "arrow-flight", "80"]
+# CMD ["sleep", "365d"]

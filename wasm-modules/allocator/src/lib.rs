@@ -3,10 +3,14 @@ use std::mem;
 use std::sync::Arc;
 use std::ops::Deref;
 use std::io::Cursor;
+use serde_json::Value;
 use std::os::raw::c_void;
 use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
 use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
+use arrow::datatypes::Int64Type;
+use arrow::compute::kernels::filter::filter_record_batch;
+use arrow::compute::kernels::comparison::gt_scalar;
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -75,22 +79,33 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
 }    
 
 
-pub fn transform_record_batch(record_in: RecordBatch) -> RecordBatch {
-    let num_cols = record_in.num_columns();
-    let num_rows = record_in.num_rows();
-    // Build a zero array
-    let struct_array = Int64Array::from(vec![0; num_rows]);
-    let new_column = Arc::new(struct_array);
-    // Get the columns except the last column
+pub fn transform_record_batch(record_in: RecordBatch, filter_col: &str, filter_val: i64) -> RecordBatch {
+    // let num_cols = record_in.num_columns();
+    // let num_rows = record_in.num_rows();
+    // // Build a zero array
+    // let struct_array = Int64Array::from(vec![1; num_rows]);
+    // let new_column = Arc::new(struct_array);
+    // // Get the columns except the last column
     let columns: &[ArrayRef] = record_in.columns();
-    let first_columns = columns[0..num_cols-1].to_vec();
-    // Create a new array with the same columns expect the last where it will be zero column
-    let new_array = [first_columns, vec![new_column]].concat();
-    // Create a transformed record batch with the same schema and the new array
-    let transformed_record = RecordBatch::try_new(
-        record_in.schema(),
-        new_array
-    ).unwrap();
+    // let first_columns = columns[0..num_cols-1].to_vec();
+    // // Create a new array with the same columns expect the last where it will be zero column
+    // let new_array = [first_columns, vec![new_column]].concat();
+    // // Create a transformed record batch with the same schema and the new array
+
+    // We begin by generating a boolean vector, indicating whether the
+    // row corresponds to an underage individual
+    let filter_index = record_in.schema().index_of(filter_col).unwrap();
+    println!("schema wasm = {:?},, index = {:?}", record_in.schema(), filter_index);
+    let col1 = columns[filter_index].data();
+    let pa1 = Int64Array::from(col1.clone());
+
+    let bool_arr = gt_scalar::<Int64Type>(&pa1, filter_val).unwrap(); 
+
+    // let transformed_record = RecordBatch::try_new(
+    //     record_in.schema(),
+    //     new_array
+    // ).unwrap();
+    let transformed_record = filter_record_batch(&record_in, &bool_arr).unwrap();
     transformed_record
 }
 
@@ -104,7 +119,19 @@ pub fn create_tuple_ptr(elem1: i64, elem2: i64) -> i64 {
  //////////IPC related functions//////////
 
 #[no_mangle]
-pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64) -> i64 {
+pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_address: i64, conf_size: i64) -> i64 {
+    let conf_bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(conf_address as *mut _, conf_size as usize, conf_size as usize) };
+    let json_str = std::str::from_utf8(&conf_bytes_array).unwrap();
+    // println!("conf str = {:?}", json_str);
+    let json: Value = serde_json::from_str(json_str).unwrap();
+    println!("json wasm = {:?}", json);
+    let filter_col = json["filter_columns"][0].as_str().unwrap();
+    let filter_val = json["value"].as_i64().unwrap();
+    // println!("json = {:?}", json["data"]);
+    // println!("json = {:?}", json["data"][0]["transformations"][0]["action"]);
+    mem::forget(conf_bytes_array);
+
+
     // Read the byte array in the given address and length
     let bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(bytes_ptr as *mut _, bytes_len as usize, bytes_len as usize) };
     let cursor = Cursor::new(bytes_array);
@@ -113,7 +140,7 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64) -> i64 {
     reader.for_each(|batch| {
         let batch = batch.unwrap();
         // Transform the record batch
-        let transformed = transform_record_batch(batch);
+        let transformed = transform_record_batch(batch, filter_col, filter_val);
 
         // Write the transformed record batch uing IPC
         let schema = transformed.schema();

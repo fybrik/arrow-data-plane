@@ -10,8 +10,9 @@ use crate::{oci_cache, types::{WasmModule, Pointer}};
 pub fn wasmInstance(path: String) -> i64 {
     println!("gg");
     // let wasm_bytes_file = std::fs::read(path).unwrap();
+    let wasm_bytes_file = std::fs::read("alloc.wasm").unwrap();
     ////oci////
-    let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
+    // let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
     ////oci////
     let store = Store::new(&Universal::new(Cranelift::default()).engine());
     // Compiling the Wasm module.

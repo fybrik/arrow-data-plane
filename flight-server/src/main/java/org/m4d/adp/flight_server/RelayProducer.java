@@ -253,10 +253,12 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         final HeaderCallOption clientProperties = new HeaderCallOption(callHeaders);
 
         Map<String, Object> request = new HashMap<String, Object>();
-        request.put("asset", "fake.csv");
+        request.put("asset", datasetName);
         List<String> list = new ArrayList<String>();
         list.add("name");
         list.add("age");
+        list.add("street");
+        list.add("country");
         request.put("columns", list);
 
 
