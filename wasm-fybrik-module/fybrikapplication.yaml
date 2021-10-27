@@ -1,0 +1,27 @@
+apiVersion: app.fybrik.io/v1alpha1
+kind: FybrikApplication
+metadata:
+  name: wasm-fybrik-module-test
+spec:
+  selector:
+   workloadSelector:
+     matchLabels: {
+       app: notebook
+     }
+  appInfo:
+    intent: Fraud Detection
+    role: Data Owner
+  data:
+    - dataSetID: "default/fake.csv"
+      requirements:
+        interface:
+          protocol: s3
+          dataformat: csv
+    # - dataSetID: "default/bank"
+    #   requirements:
+    #     copy:
+    #       catalog: {}
+    #       required: false
+    #     interface:
+    #       protocol: s3
+    #       dataformat: csv

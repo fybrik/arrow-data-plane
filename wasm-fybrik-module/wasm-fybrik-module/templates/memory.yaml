@@ -1,0 +1,63 @@
+# ##################################################################################################
+# # Memory Server
+# ##################################################################################################
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: memory
+#   labels:
+#     app: memory
+#     service: memory
+# spec:
+#   type: LoadBalancer
+#   ports:
+#   - port: 12233
+#     targetPort: 12233
+#     name: direct
+#     name: memory
+#   selector:
+#     app: memory
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: memory
+#   labels:
+#     account: memory
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: memory-v1
+#   labels:
+#     app: memory
+#     version: v1
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: memory
+#       version: v1
+#   template:
+#     metadata:
+#       labels:
+#         app: memory
+#         version: v1
+#     spec:
+#       serviceAccountName: memory
+#       serviceAccount: memory
+#       containers:
+#       - name: memory
+#         image: ghcr.io/mohammad-nassar10/example_memory:latest
+#         imagePullPolicy: IfNotPresent
+#         ports:
+#         - containerPort: 12233
+#         volumeMounts:
+#           - readOnly: true
+#             mountPath: /etc/conf
+#             name: config
+#       volumes:
+#       - name: config
+#         configMap:
+#           name: {{ include "wasm-fybrik-module.fullname" . }}
+# ---

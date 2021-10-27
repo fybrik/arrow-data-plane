@@ -1,0 +1,76 @@
+apiVersion: app.fybrik.io/v1alpha1
+kind: FybrikModule
+metadata:
+  name: wasm-fybrik-module
+  labels:
+    name: wasm-fybrik-module
+    version: 0.0.1  # semantic version
+  namespace: fybrik-system
+spec:
+  type: service
+  chart:
+    name: ghcr.io/mohammad-nassar10/wasm-fybrik-module-chart:latest
+    values:
+      image.tag: v0.0.1 
+  capabilities:
+    - capability: read
+      scope: workload
+      actions:
+        - name: Filter
+      api:
+        endpoint:
+          port: 80
+          scheme: grpc
+        protocol: s3
+        dataformat: csv
+      supportedInterfaces:
+        - source:
+            protocol: s3
+            dataformat: csv
+  statusIndicators:
+    - kind: wasm-fybrik-module
+      successCondition: status.status == SUCCEEDED
+      failureCondition: status.status == FAILED
+      errorMessage: status.error
+
+
+
+
+# apiVersion: app.fybrik.io/v1alpha1
+# kind: FybrikModule
+# metadata:
+#   name: wasm-fybrik-module
+#   labels:
+#     name: wasm-fybrik-module
+#     version: 0.0.1  # semantic version
+#   namespace: fybrik-system
+# spec:
+#   # type: service
+#   chart:
+#     name: ghcr.io/mohammad-nassar10/wasm-fybrik-module-chart:latest
+#     values:
+#       image.tag: v0.0.1
+#   flows:
+#     - read    
+#   capabilities:
+#     actions:
+#       - id: redact-ID
+#         level: 2  # column
+#       # - id: FilterMinors
+#       #   level: 2  
+#     api:
+#       protocol: s3
+#       dataformat: csv
+#       endpoint:
+#           port: 80
+#           scheme: grpc
+#     supportedInterfaces:
+#     - flow: read
+#       source:
+#         protocol: s3
+#         dataformat: csv
+#   statusIndicators:
+#     - kind: wasm-fybrik-module
+#       successCondition: status.status == SUCCEEDED
+#       failureCondition: status.status == FAILED
+#       errorMessage: status.error

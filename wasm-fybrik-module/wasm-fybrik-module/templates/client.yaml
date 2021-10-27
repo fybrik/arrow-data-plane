@@ -1,0 +1,66 @@
+# ##################################################################################################
+# # Client
+# ##################################################################################################
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: client
+#   labels:
+#     app: client
+#     service: client
+# spec:
+#   type: LoadBalancer
+#   ports:
+#   - port: 12233
+#     targetPort: 12233
+#     name: direct
+#   - port: 12232
+#     targetPort: 12232
+#     name: client
+#   selector:
+#     app: client
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: client
+#   labels:
+#     account: client
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: client-v1
+#   labels:
+#     app: client
+#     version: v1
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: client
+#       version: v1
+#   template:
+#     metadata:
+#       labels:
+#         app: client
+#         version: v1
+#     spec:
+#       serviceAccountName: client
+#       serviceAccount: client
+#       containers:
+#       - name: client
+#         image: ghcr.io/mohammad-nassar10/example_client:latest
+#         imagePullPolicy: IfNotPresent
+#         ports:
+#         - containerPort: 12232
+#         - containerPort: 12233
+#         volumeMounts:
+#           - readOnly: true
+#             mountPath: /etc/conf
+#             name: config
+#       volumes:
+#       - name: config
+#         configMap:
+#           name: {{ include "wasm-fybrik-module.fullname" . }}
+# ---

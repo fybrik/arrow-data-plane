@@ -1,0 +1,23 @@
+apiVersion: katalog.fybrik.io/v1alpha1
+kind: Asset
+metadata:
+  name: fake.csv
+spec:
+  secretRef: 
+    name: fake.csv
+  assetDetails:
+    dataFormat: csv
+    connection:
+      type: s3
+      s3:
+        endpoint: "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+        bucket: "fake-csv-bucket"
+        objectKey: "fake.csv"
+  assetMetadata:
+    geography: theshire
+    tags:
+    - finance
+    componentsMetadata:
+      age: 
+        tags:
+        - PII

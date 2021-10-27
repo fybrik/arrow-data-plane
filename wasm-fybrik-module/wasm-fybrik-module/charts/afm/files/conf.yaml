@@ -1,0 +1,97 @@
+data:
+  - name: "new-dataset"
+    format: parquet
+    path: "/tmp/new-dataset"
+    connection:
+      type: localfs
+  - name: "default/fake.csv"
+    format: csv
+    path: "fake-csv-bucket/fake.csv"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+  - name: "nyc-taxi.parquet"
+    format: parquet
+    path: "ursa-labs-taxi-data/2019"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: "https://s3.us-east-2.amazonaws.com"
+    transformations:
+      - action: "Redact"
+        description: "redact stuff"
+        columns:
+          - payment_type
+        options:
+          redactValue: "XXXXX"
+
+
+
+
+# {{- if .Values.read -}}
+# data:
+# {{- range .Values.read }}
+#   - format: {{ .source.format }}
+#     name: {{ .assetID | quote }}
+#     {{- if .source.connection.s3 }}
+#     path: "{{ .source.connection.s3.bucket }}/{{ .source.connection.s3.object_key }}"
+#     connection:
+#       type: s3
+#       s3:
+#         endpoint_url: {{if not (contains "://" .source.connection.s3.endpoint)}}https://{{end}}{{ .source.connection.s3.endpoint }}
+#         {{- if .source.credentialLocation }}
+#         credentials:
+#           secretProvider: {{ .source.credentialLocation }}
+#         {{- end }}
+#         {{- if .source.vault }}
+#         vault_credentials:
+#           {{- if .source.vault.address }}
+#           address: {{ .source.vault.address }}
+#           {{- end }}
+#           {{- if .source.vault.authPath }}
+#           authPath: {{ .source.vault.authPath }}
+#           {{- end }}
+#           {{- if .source.vault.role }}
+#           role: {{ .source.vault.role }}
+#           {{- end }}
+#           {{- if .source.vault.secretPath }}
+#           secretPath: {{ .source.vault.secretPath }}
+#           {{- end }}
+#         {{- end }}
+#     {{- end }}
+#     {{- if .transformations }}
+#     transformations:
+#     {{- $redactColumns := list -}}
+#     {{- $removeColumns := list -}}
+#     {{- range .transformations -}}
+#       {{- if eq .id "redact-ID" -}}
+#         {{- $redactColumns = append  $redactColumns .args.column_name -}}
+#       {{- end -}}
+#       {{- if eq .id "removed-ID" -}}
+#         {{- $removeColumns = append  $removeColumns .args.column_name -}}
+#       {{- end -}}
+#     {{- end -}}
+#     {{- if $redactColumns }}
+#       - action: "Redact"
+#         description: "redacting columns: {{ $redactColumns }}"
+#         columns: 
+#           {{- range $redactColumns}}
+#           - {{ . }}
+#           {{- end }}
+#         options:
+#           redactValue: "XXXXX"
+#     {{- end }}
+#     {{- if $removeColumns }}
+#       - action: "RemoveColumns"
+#         description: "removing columns: {{ $removeColumns }}"
+#         columns: 
+#           {{- range $removeColumns}}
+#           - {{ . }}
+#           {{- end }}
+#     {{- end }}
+#     {{- end }}
+# {{- end -}}
+# {{- else -}}
+# data: []
+# {{- end -}}
