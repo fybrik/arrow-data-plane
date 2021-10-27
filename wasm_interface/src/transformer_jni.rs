@@ -33,6 +33,7 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_Transformat
     let json: Value = serde_json::from_str(json_str).unwrap();
     println!("json = {:?}", json);
     // Object({"columns": Array([String("age")])})
+    // let x = json["value"].as_str().unwrap().parse::<i64>().unwrap();
     let x = json["value"].as_i64().unwrap();
     println!("json = {:?}", x);
     // println!("json = {:?}", json["data"][0]["transformations"][0]["action"]);

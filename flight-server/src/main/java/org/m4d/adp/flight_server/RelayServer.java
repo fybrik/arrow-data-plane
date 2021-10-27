@@ -83,6 +83,7 @@ public class RelayServer implements AutoCloseable {
         InputStream inputStream = new FileInputStream(new File("/etc/conf/conf.yaml"));
         
         String yamlStr = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+        System.out.println("conf = " + yamlStr);
 
         ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
 

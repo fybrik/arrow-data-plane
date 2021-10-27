@@ -14,17 +14,20 @@ import org.m4d.adp.transform.TransformInterface;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.HashMap;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.JSONPObject;
-import com.google.gson.Gson;
+// import com.google.gson.Gson;
 
 /**
  * Flight Producer for flight server that serves as relay to another flight
@@ -71,19 +74,57 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         Map<String, Object> data1 = data.get(0);
         this.datasetName = (String) data1.get("name");
 
-        List<Map<String, Object>> transformations = (List<Map<String, Object>>) data1.get("transformations");
-        // Now we want to get the desired action
-        String action = (String) transformations.get(0).get("action");
+        // List<Map<String, String>> transformations = (List<Map<String, String>>) data1.get("transformations");
+
+        System.out.println("transforms[0] = ");
+
+        List<Map<String, Object>> transformationsJson = (List<Map<String, Object>>) data1.get("transformations");
+        System.out.println("transforms[0] = " + transformationsJson);
+        // Map<String, String> transformationsMap = mapper.readValue(transformationsJson.get(0), new TypeReference<Map<String, String>>(){});
+        String actionName = (String) transformationsJson.get(0).get("name");
+        Map<String, Object> argsJsonMap = (Map<String, Object>) transformationsJson.get(0).get(actionName);
+        String argsJsonStr = mapper.writeValueAsString(argsJsonMap);
+        System.out.println("transform map = " + transformationsJson + " action name = " + actionName + " args = " + argsJsonStr);
+        this.transformConf = argsJsonStr;
+
+
+
+        // // String transformation = (String) data1.get("transformation");
+        // // String actionId = transformations.get(0).get("id");
+        // String actionName = transformations.get(0).get("name");
+        // String actionArgs = transformations.get(0).get("args");
+        
+        // System.out.println("transformations = " + transformations +  " name = " + actionName + " args = " + actionArgs);
+        // // transformation.split(" ");
+        // Map<String, String> argsMap = Arrays.stream(actionArgs.split(" "))
+        // .map(entry -> entry.split(":"))
+        // .collect(Collectors.toMap(entry -> entry[0].replace("map", "").replace("[", "").replace("]", ""), entry -> entry[1].replace("map", "").replace("[", "").replace("]", "")));
+        // // map.keySet().iterator().    
+        // ObjectMapper jsonWriter = new ObjectMapper();
+        // String jsonStr =  jsonWriter.writeValueAsString(argsMap);
+        // this.transformConf = jsonStr;
+        // System.out.println("map = " + argsMap + " map str = " + this.transformConf + " json str = " + jsonStr);
+
+        // // Map<String, Object> transformation = (Map<String, Object>) transformations.get("transformation");
+        // // String id = (String) transformation.get("id");
+        // // System.out.println("id = " + id);
+        // // "[map[args:map[column_name:age] id:redact-ID level:2 name:redact]]"
+
+        // // Now we want to get the desired action
+        // // String action = (String) transformations.get("action");
+
+        
+        String action = actionName;
         System.out.println("wanted action: " + action);
         // Now we want to get the oci image that related to the action
         for (int i = 0; i < imageMappings.size(); i++) {
             Map<String, Object> actionConf = imageMappings.get(i);
-            String actionName = (String) actionConf.get("name");
-            if (actionName.equals(action)) {
+            String ociActionName = (String) actionConf.get("name");
+            if (ociActionName.equalsIgnoreCase(action)) {
                 this.wasmImage = (String) actionConf.get("wasm_image");
-                this.transformConf = (String) actionConf.get("configuration");
+                // this.transformConf = (String) actionConf.get("configuration");
             }
-            System.out.println("action name: " + actionName + " wasm image: " + this.wasmImage);
+            System.out.println("action name: " + ociActionName + " wasm image: " + this.wasmImage);
         }
         System.out.println("wasm image: " + this.wasmImage + " dataset name: " + this.datasetName + " conf: " + this.transformConf);
     }
@@ -251,8 +292,9 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
                                     FlightDescriptor descriptor) {
         final CallHeaders callHeaders = new FlightCallHeaders();
         final HeaderCallOption clientProperties = new HeaderCallOption(callHeaders);
-
+        ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> request = new HashMap<String, Object>();
+        System.out.println("dataset name = " + datasetName);
         request.put("asset", datasetName);
         List<String> list = new ArrayList<String>();
         list.add("name");
@@ -262,8 +304,14 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         request.put("columns", list);
 
 
-        Gson json = new Gson();
-        String jsonStr = json.toJson(request);
+        // Gson json = new Gson();
+        String jsonStr = "";
+        try {
+            jsonStr = mapper.writeValueAsString(request);
+        } catch (JsonProcessingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }//json.toJson(request);
         FlightDescriptor flightDescriptor = FlightDescriptor.command(jsonStr.getBytes(StandardCharsets.UTF_8));
         FlightInfo flightInfo = client.getInfo(flightDescriptor, clientProperties);
         System.out.println(flightInfo.getSchema());

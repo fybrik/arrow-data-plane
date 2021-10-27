@@ -7,10 +7,10 @@ use serde_json::Value;
 use std::os::raw::c_void;
 use arrow::array::ArrayRef;
 use arrow::record_batch::RecordBatch;
-use arrow::{array::{Int64Array}, ipc::{self, reader::StreamReader}};
+use arrow::{array::{Int64Array, BooleanArray}, ipc::{self, reader::StreamReader}};
 use arrow::datatypes::Int64Type;
 use arrow::compute::kernels::filter::filter_record_batch;
-use arrow::compute::kernels::comparison::gt_scalar;
+use arrow::compute::kernels::comparison::{eq_scalar, neq_scalar, gt_scalar, gt_eq_scalar, lt_scalar, lt_eq_scalar};
 
 #[derive(Debug)]
 pub struct Pointer<Kind> {
@@ -79,9 +79,9 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
 }    
 
 
-pub fn transform_record_batch(record_in: RecordBatch, filter_col: &str, filter_val: i64) -> RecordBatch {
+pub fn transform_record_batch(record_in: RecordBatch, filter_col: &str, filter_val: i64, filter_op: &str) -> RecordBatch {
     // let num_cols = record_in.num_columns();
-    // let num_rows = record_in.num_rows();
+    let num_rows = record_in.num_rows();
     // // Build a zero array
     // let struct_array = Int64Array::from(vec![1; num_rows]);
     // let new_column = Arc::new(struct_array);
@@ -99,7 +99,15 @@ pub fn transform_record_batch(record_in: RecordBatch, filter_col: &str, filter_v
     let col1 = columns[filter_index].data();
     let pa1 = Int64Array::from(col1.clone());
 
-    let bool_arr = gt_scalar::<Int64Type>(&pa1, filter_val).unwrap(); 
+    let bool_arr = match filter_op {
+        "=" => eq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        "!=" => neq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        ">=" => gt_eq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        ">" => gt_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        "<=" => lt_eq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        "<" => lt_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        _ => BooleanArray::from(vec![true; num_rows]),
+    };
 
     // let transformed_record = RecordBatch::try_new(
     //     record_in.schema(),
@@ -125,8 +133,10 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_addr
     // println!("conf str = {:?}", json_str);
     let json: Value = serde_json::from_str(json_str).unwrap();
     println!("json wasm = {:?}", json);
-    let filter_col = json["filter_columns"][0].as_str().unwrap();
+    let filter_col = json["column"].as_str().unwrap();
+    let filter_op = json["op"].as_str().unwrap();
     let filter_val = json["value"].as_i64().unwrap();
+    // let filter_val = json["value"].as_str().unwrap().parse::<i64>().unwrap();
     // println!("json = {:?}", json["data"]);
     // println!("json = {:?}", json["data"][0]["transformations"][0]["action"]);
     mem::forget(conf_bytes_array);
@@ -140,7 +150,7 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_addr
     reader.for_each(|batch| {
         let batch = batch.unwrap();
         // Transform the record batch
-        let transformed = transform_record_batch(batch, filter_col, filter_val);
+        let transformed = transform_record_batch(batch, filter_col, filter_val, filter_op);
 
         // Write the transformed record batch uing IPC
         let schema = transformed.schema();
