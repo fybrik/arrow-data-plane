@@ -17,11 +17,3 @@ spec:
         interface:
           protocol: s3
           dataformat: csv
-    # - dataSetID: "default/bank"
-    #   requirements:
-    #     copy:
-    #       catalog: {}
-    #       required: false
-    #     interface:
-    #       protocol: s3
-    #       dataformat: csv
