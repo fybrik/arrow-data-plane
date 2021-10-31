@@ -8,14 +8,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.*;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 
@@ -27,8 +21,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.compress.utils.IOUtils;
-import org.yaml.snakeyaml.Yaml;
 
 
 public class RelayServer implements AutoCloseable {
@@ -79,56 +71,21 @@ public class RelayServer implements AutoCloseable {
         host = line.getOptionValue("host", "0.0.0.0");
         port = Integer.valueOf(line.getOptionValue("port", "12232"));
 
-        ////yaml////
+        // Read the configuration file as Yaml
         InputStream inputStream = new FileInputStream(new File("/etc/conf/conf.yaml"));
-        
         String yamlStr = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-        System.out.println("conf = " + yamlStr);
-
         ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
-
+        // Convert the Yaml to Json
         Object obj = yamlReader.readValue(yamlStr, Object.class);
         ObjectMapper jsonWriter = new ObjectMapper();
         String jsonStr =  jsonWriter.writeValueAsString(obj);
-
-        
-        // ObjectMapper mapper = new ObjectMapper();
-        // Map<String, Object> conf = mapper.readValue(jsonStr, new TypeReference<Map<String, Object>>(){});
-        // // System.out.println(conf);
-
-        // // Yaml yaml = new Yaml();
-        // // Map<String, Object> conf = yaml.load(inputStream);
-        // List<Map<String, Object>> data = (List<Map<String, Object>>) conf.get("data");
-        // System.out.println("len data = " + data.size());
-        // Map<String, Object> data1 = data.get(0);
-        // boolean withTransformation = data1.containsKey("transformations");
-        // // Object transformationsObject = conf.get("transformations");
-        // System.out.println(conf);
-        // System.out.println(withTransformation);
-        // for (int i = 0; i < data.size(); i++) {
-        //     Map<String, Object> dataset = data.get(i);
-
-        //     List<Map<String, Object>> transformations = (List<Map<String, Object>>) dataset.get("transformations");
-        //     String ociImage = (String) transformations.get(0).get("image");
-        //     System.out.println("assetId: " + dataset.get("name") + " transformations: " + transformations + " oci image: " + ociImage);
-        // }
-        // transform = withTransformation;
-        // if (withTransformation) {
-        //     List<Map<String, Object>> transformations = (List<Map<String, Object>>) data1.get("transformations");
-        //     String action = (String) transformations.get(0).get("action");
-        //     System.out.println(action);
-        // }
-
-
-
-        ////yaml////
 
         final Location location;
         final NoOpFlightProducer producer;
         location = Location.forGrpcInsecure(host, port);
         Location remote_location = Location.forGrpcInsecure(remote_host, remote_port);
+        // Create Relay producer
         producer = new RelayProducer(location, remote_location, a, transform, false, jsonStr);
-
 
         final RelayServer rs = new RelayServer(a, location, producer);
         rs.start();

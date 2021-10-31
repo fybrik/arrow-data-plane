@@ -80,39 +80,28 @@ pub unsafe fn dealloc(ptr: i64, size: i64) {
 
 
 pub fn transform_record_batch(record_in: RecordBatch, filter_col: &str, filter_val: i64, filter_op: &str) -> RecordBatch {
-    // let num_cols = record_in.num_columns();
     let num_rows = record_in.num_rows();
-    // // Build a zero array
-    // let struct_array = Int64Array::from(vec![1; num_rows]);
-    // let new_column = Arc::new(struct_array);
-    // // Get the columns except the last column
+    // Get the columns of the input record batch
     let columns: &[ArrayRef] = record_in.columns();
-    // let first_columns = columns[0..num_cols-1].to_vec();
-    // // Create a new array with the same columns expect the last where it will be zero column
-    // let new_array = [first_columns, vec![new_column]].concat();
-    // // Create a transformed record batch with the same schema and the new array
 
-    // We begin by generating a boolean vector, indicating whether the
+    // Generate a boolean vector, indicating whether the
     // row corresponds to an underage individual
+
+    // Get the index of the column which we want to filter according to it
     let filter_index = record_in.schema().index_of(filter_col).unwrap();
-    println!("schema wasm = {:?},, index = {:?}", record_in.schema(), filter_index);
-    let col1 = columns[filter_index].data();
-    let pa1 = Int64Array::from(col1.clone());
+    let filter_column = columns[filter_index].data();
+    let filter_array = Int64Array::from(filter_column.clone());
 
     let bool_arr = match filter_op {
-        "=" => eq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
-        "!=" => neq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
-        ">=" => gt_eq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
-        ">" => gt_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
-        "<=" => lt_eq_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
-        "<" => lt_scalar::<Int64Type>(&pa1, filter_val).unwrap(),
+        "=" => eq_scalar::<Int64Type>(&filter_array, filter_val).unwrap(),
+        "!=" => neq_scalar::<Int64Type>(&filter_array, filter_val).unwrap(),
+        ">=" => gt_eq_scalar::<Int64Type>(&filter_array, filter_val).unwrap(),
+        ">" => gt_scalar::<Int64Type>(&filter_array, filter_val).unwrap(),
+        "<=" => lt_eq_scalar::<Int64Type>(&filter_array, filter_val).unwrap(),
+        "<" => lt_scalar::<Int64Type>(&filter_array, filter_val).unwrap(),
         _ => BooleanArray::from(vec![true; num_rows]),
     };
 
-    // let transformed_record = RecordBatch::try_new(
-    //     record_in.schema(),
-    //     new_array
-    // ).unwrap();
     let transformed_record = filter_record_batch(&record_in, &bool_arr).unwrap();
     transformed_record
 }
@@ -128,19 +117,16 @@ pub fn create_tuple_ptr(elem1: i64, elem2: i64) -> i64 {
 
 #[no_mangle]
 pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_address: i64, conf_size: i64) -> i64 {
+    // Read the memory block of the configuration and convert it to bytes array
     let conf_bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(conf_address as *mut _, conf_size as usize, conf_size as usize) };
+    // Convert the byte array to a Json Strong 
     let json_str = std::str::from_utf8(&conf_bytes_array).unwrap();
-    // println!("conf str = {:?}", json_str);
     let json: Value = serde_json::from_str(json_str).unwrap();
-    println!("json wasm = {:?}", json);
+    // Parse the Json to get the expected arguments
     let filter_col = json["column"].as_str().unwrap();
     let filter_op = json["op"].as_str().unwrap();
     let filter_val = json["value"].as_i64().unwrap();
-    // let filter_val = json["value"].as_str().unwrap().parse::<i64>().unwrap();
-    // println!("json = {:?}", json["data"]);
-    // println!("json = {:?}", json["data"][0]["transformations"][0]["action"]);
     mem::forget(conf_bytes_array);
-
 
     // Read the byte array in the given address and length
     let bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(bytes_ptr as *mut _, bytes_len as usize, bytes_len as usize) };

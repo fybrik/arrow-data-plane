@@ -14,20 +14,16 @@ import org.m4d.adp.transform.TransformInterface;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.HashMap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-// import com.google.gson.Gson;
 
 /**
  * Flight Producer for flight server that serves as relay to another flight
@@ -56,6 +52,7 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         this.configuration = "";
     }
 
+    // Constructor with a configuration parameter
     public RelayProducer(Location location, Location remote_location, BufferAllocator allocator, boolean transform,
             boolean zeroCopy, String configuration) throws Exception {
         this.transform = transform;
@@ -66,67 +63,34 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         this.configuration = configuration;
         //// Parsing the configuration
         ObjectMapper mapper = new ObjectMapper();
+        // Read the configuration String as a map from String to Object
         Map<String, Object> conf = mapper.readValue(configuration, new TypeReference<Map<String, Object>>(){});
-        // The desired action exists in a "data" list.
+        // Getting the dataset we want to read and transform (Here we assume there is only one dataset)
         List<Map<String, Object>> data = (List<Map<String, Object>>) conf.get("data");
-        // The mapping from actions to images exists in a list of "transformations"
-        List<Map<String, Object>> imageMappings = (List<Map<String, Object>>) conf.get("transformations");
         Map<String, Object> data1 = data.get(0);
         this.datasetName = (String) data1.get("name");
-
-        // List<Map<String, String>> transformations = (List<Map<String, String>>) data1.get("transformations");
-
-        System.out.println("transforms[0] = ");
-
+        // Get the actions that should be performed
+        // TODO: Generalize to more than one transformation
         List<Map<String, Object>> transformationsJson = (List<Map<String, Object>>) data1.get("transformations");
-        System.out.println("transforms[0] = " + transformationsJson);
-        // Map<String, String> transformationsMap = mapper.readValue(transformationsJson.get(0), new TypeReference<Map<String, String>>(){});
         String actionName = (String) transformationsJson.get(0).get("name");
+        // Get the arguments of the transformation in order to move them to the Wasm side
         Map<String, Object> argsJsonMap = (Map<String, Object>) transformationsJson.get(0).get(actionName);
         String argsJsonStr = mapper.writeValueAsString(argsJsonMap);
-        System.out.println("transform map = " + transformationsJson + " action name = " + actionName + " args = " + argsJsonStr);
+        // System.out.println("transform map = " + transformationsJson + " action name = " + actionName + " args = " + argsJsonStr);
         this.transformConf = argsJsonStr;
-
-
-
-        // // String transformation = (String) data1.get("transformation");
-        // // String actionId = transformations.get(0).get("id");
-        // String actionName = transformations.get(0).get("name");
-        // String actionArgs = transformations.get(0).get("args");
         
-        // System.out.println("transformations = " + transformations +  " name = " + actionName + " args = " + actionArgs);
-        // // transformation.split(" ");
-        // Map<String, String> argsMap = Arrays.stream(actionArgs.split(" "))
-        // .map(entry -> entry.split(":"))
-        // .collect(Collectors.toMap(entry -> entry[0].replace("map", "").replace("[", "").replace("]", ""), entry -> entry[1].replace("map", "").replace("[", "").replace("]", "")));
-        // // map.keySet().iterator().    
-        // ObjectMapper jsonWriter = new ObjectMapper();
-        // String jsonStr =  jsonWriter.writeValueAsString(argsMap);
-        // this.transformConf = jsonStr;
-        // System.out.println("map = " + argsMap + " map str = " + this.transformConf + " json str = " + jsonStr);
-
-        // // Map<String, Object> transformation = (Map<String, Object>) transformations.get("transformation");
-        // // String id = (String) transformation.get("id");
-        // // System.out.println("id = " + id);
-        // // "[map[args:map[column_name:age] id:redact-ID level:2 name:redact]]"
-
-        // // Now we want to get the desired action
-        // // String action = (String) transformations.get("action");
-
-        
-        String action = actionName;
-        System.out.println("wanted action: " + action);
         // Now we want to get the oci image that related to the action
+        // The mapping from actions to images exists in a list of "transformations"
+        List<Map<String, Object>> imageMappings = (List<Map<String, Object>>) conf.get("transformations");
         for (int i = 0; i < imageMappings.size(); i++) {
             Map<String, Object> actionConf = imageMappings.get(i);
             String ociActionName = (String) actionConf.get("name");
-            if (ociActionName.equalsIgnoreCase(action)) {
+            if (ociActionName.equalsIgnoreCase(actionName)) {
                 this.wasmImage = (String) actionConf.get("wasm_image");
-                // this.transformConf = (String) actionConf.get("configuration");
+                break;
             }
-            System.out.println("action name: " + ociActionName + " wasm image: " + this.wasmImage);
         }
-        System.out.println("wasm image: " + this.wasmImage + " dataset name: " + this.datasetName + " conf: " + this.transformConf);
+        // System.out.println("wasm image: " + this.wasmImage + " dataset name: " + this.datasetName + " conf: " + this.transformConf);
     }
 
     private byte[] WASMTransformByteArray(long instance_ptr, byte[] recordBatchByteArray, int size) {
@@ -182,40 +146,9 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
     }
 
     public void getStreamTransform(CallContext context, Ticket ticket, ServerStreamListener listener) throws Exception {
-        // We need to parse the json string of the configuration to get the oci image for the desired action
-        // String wasmImage = "";
-        // ObjectMapper mapper = new ObjectMapper();
-        // Map<String, Object> conf = mapper.readValue(configuration, new TypeReference<Map<String, Object>>(){});
-        // // The desired action exists in a "data" list.
-        // List<Map<String, Object>> data = (List<Map<String, Object>>) conf.get("data");
-        // // The mapping from actions to images exists in a list of "transformations"
-        // List<Map<String, Object>> imageMappings = (List<Map<String, Object>>) conf.get("transformations");
-        // Map<String, Object> data1 = data.get(0);
-        // // System.out.println(conf);
-
-        // List<Map<String, Object>> transformations = (List<Map<String, Object>>) data1.get("transformations");
-        // // Now we want to get the desired action
-        // String action = (String) transformations.get(0).get("action");
-        // System.out.println("wanted action: " + action);
-        // // Now we want to get the oci image that related to the action
-        // for (int i = 0; i < imageMappings.size(); i++) {
-        //     Map<String, Object> actionConf = imageMappings.get(i);
-        //     String actionName = (String) actionConf.get("name");
-        //     if (actionName.equals(action)) {
-        //         wasmImage = (String) actionConf.get("wasm_image");
-        //     }
-        //     System.out.println("action name: " + actionName + " wasm image: " + wasmImage);
-        // }
-        // System.out.println("wasm image: " + wasmImage);
-        // System.out.println("assetId: " + dataset.get("name") + " transformations: " + transformations + " oci image: " + wasmImage);
-
-    
-        // String wasmImage = "ghcr.io/the-mesh-for-data/alloc-transform:v1";
-        //// get oci image ////
-
-        System.out.println("get stream transform");
+        // Get instance of the Wasm module that related to the requested action 
         try (FlightStream stream = client.getStream(ticket);
-                WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory(wasmImage)) {
+                WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory(this.wasmImage)) {
             long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
             VectorLoader loader = null;
             while (stream.next()) {
@@ -292,6 +225,7 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
                                     FlightDescriptor descriptor) {
         final CallHeaders callHeaders = new FlightCallHeaders();
         final HeaderCallOption clientProperties = new HeaderCallOption(callHeaders);
+        // Create a request of the dataset for the arrow-flight server
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> request = new HashMap<String, Object>();
         System.out.println("dataset name = " + datasetName);
@@ -303,44 +237,18 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         list.add("country");
         request.put("columns", list);
 
-
-        // Gson json = new Gson();
+        // Convert the request to Json
         String jsonStr = "";
         try {
             jsonStr = mapper.writeValueAsString(request);
         } catch (JsonProcessingException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
-        }//json.toJson(request);
+        }
         FlightDescriptor flightDescriptor = FlightDescriptor.command(jsonStr.getBytes(StandardCharsets.UTF_8));
         FlightInfo flightInfo = client.getInfo(flightDescriptor, clientProperties);
         System.out.println(flightInfo.getSchema());
         return flightInfo;
     }
-
-
-
-    // @Override
-    // public FlightInfo getFlightInfo(FlightProducer.CallContext context, FlightDescriptor descriptor) {
-    //     Preconditions.checkArgument(descriptor.isCommand());
-    //     // Perf exec = Perf.parseFrom(descriptor.getCommand());
-
-    //     final Schema pojoSchema = new Schema(ImmutableList.of(Field.nullable("a", Types.MinorType.BIGINT.getType()),
-    //             Field.nullable("b", Types.MinorType.BIGINT.getType()),
-    //             Field.nullable("c", Types.MinorType.BIGINT.getType()),
-    //             Field.nullable("d", Types.MinorType.BIGINT.getType())));
-
-    //     int streamCount = 1;
-    //     PerfOuterClass.Token token = PerfOuterClass.Token.newBuilder().build();
-    //     final Ticket ticket = new Ticket(token.toByteArray());
-
-    //     List<FlightEndpoint> endpoints = new ArrayList<>();
-    //     for (int i = 0; i < streamCount; i++) {
-    //         endpoints.add(new FlightEndpoint(ticket, location));
-    //     }
-
-    //     return new FlightInfo(pojoSchema, descriptor, endpoints, -1, -1);
-    // }
 
     @Override
     public void close() throws Exception {

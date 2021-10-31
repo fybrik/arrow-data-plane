@@ -9,7 +9,6 @@ use jni::objects::JClass;
 // can't return one of the objects with lifetime information because the
 // lifetime checker won't let us.
 use jni::sys::jlong;
-use serde_json::Value;
 
 
 #[no_mangle]
@@ -18,29 +17,6 @@ pub extern "system" fn Java_org_m4d_adp_transform_TransformInterface_Transformat
     let wasm_module = Into::<Pointer<WasmModule>>::into(wasm_module_ptr).borrow();
     let instance = &wasm_module.instance;
     let read_transform_write_from_bytes_wasm = instance.exports.get_function("read_transform_write_from_bytes").unwrap().native::<(i64, i64, i64, i64), i64>().unwrap();
-
-
-    ////conf////
-    let memory = instance.exports.get_memory("memory").unwrap();
-    let mem_ptr = memory.data_ptr();
-    let conf_bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(((mem_ptr as jlong) + confAddress) as *mut _, confSize as usize, confSize as usize) };
-    // let json_str = match std::str::from_utf8(&conf_bytes_array) {
-    //     Ok(v) => v,
-    //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-    // };
-    let json_str = std::str::from_utf8(&conf_bytes_array).unwrap();
-    // println!("conf str = {:?}", json_str);
-    let json: Value = serde_json::from_str(json_str).unwrap();
-    println!("json = {:?}", json);
-    // Object({"columns": Array([String("age")])})
-    // let x = json["value"].as_str().unwrap().parse::<i64>().unwrap();
-    let x = json["value"].as_i64().unwrap();
-    println!("json = {:?}", x);
-    // println!("json = {:?}", json["data"][0]["transformations"][0]["action"]);
-    mem::forget(conf_bytes_array);
-    ////conf////
-    
-
     
     // Call the function that read the bytes in the `address` parameter and getting the appropriate record batch
     // Then, it makes a transformation, writes back the transformed record batch, and returns a tuple of `(address, len)` of the transformed batch

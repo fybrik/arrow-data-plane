@@ -19,7 +19,6 @@ public class WasmAllocationFactory implements AllocationManager.Factory, AutoClo
     }
 
     public WasmAllocationFactory() {
-        // instancePtr = AllocatorInterface.wasmInstance("../wasm-modules/allocator/target/wasm32-wasi/release/alloc.wasm");
         instancePtr = AllocatorInterface.wasmInstance("ghcr.io/the-mesh-for-data/alloc-transform:v1");
     }
 
