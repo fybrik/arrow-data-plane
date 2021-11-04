@@ -9,7 +9,7 @@ metadata:
 spec:
   type: service
   chart:
-    name: ghcr.io/mohammad-nassar10/wasm-fybrik-module-chart:latest
+    name: ghcr.io/fybrik/wasm-fybrik-module-chart:latest
     values:
       image.tag: v0.0.1 
   capabilities:

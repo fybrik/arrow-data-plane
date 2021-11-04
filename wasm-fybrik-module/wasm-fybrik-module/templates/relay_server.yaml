@@ -50,7 +50,7 @@ spec:
       serviceAccount: relay
       containers:
       - name: relay
-        image: ghcr.io/mohammad-nassar10/relay-flight-server:latest
+        image: ghcr.io/fybrik/relay-flight-server:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 12232
