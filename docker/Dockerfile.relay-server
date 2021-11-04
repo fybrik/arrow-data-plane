@@ -7,4 +7,4 @@ COPY logging.xml /root
 COPY flight-server-all.jar /root/
 COPY run_relay_server.sh /root/
 
-CMD ["/root/run_relay_server.sh", "false"]
+CMD ["/root/run_relay_server.sh", "arrow-flight", "80"]

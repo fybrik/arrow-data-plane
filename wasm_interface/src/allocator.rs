@@ -1,6 +1,4 @@
-use std::ptr;
-
-use wasmer::{Cranelift, Instance, Memory, MemoryType, Module, Store, Universal, imports};
+use wasmer::{Cranelift, Instance, Module, Store, Universal};
 use wasmer_wasi::WasiState;
 use crate::{oci_cache, types::{WasmModule, Pointer}};
 
@@ -8,10 +6,8 @@ use crate::{oci_cache, types::{WasmModule, Pointer}};
 // A function that takes a path to OCI image and returns a Pointer of type WasmModule.
 #[no_mangle]
 pub fn wasmInstance(path: String) -> i64 {
-    println!("gg");
-    let wasm_bytes_file = std::fs::read("alloc.wasm").unwrap();
     // Get the Wasm image from the OCI registry according to the path input
-    // let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
+    let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
     let store = Store::new(&Universal::new(Cranelift::default()).engine());
     // Compiling the Wasm module.
     let module = Module::new(&store, wasm_bytes_file).unwrap();
