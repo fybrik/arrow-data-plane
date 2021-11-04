@@ -112,9 +112,6 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         // The function returns a tuple of `(address, lenght)` of as byte array that
         // represents the transformed vector schema root
         long transformed_bytes_tuple = TransformInterface.TransformationIPC(instance_ptr, allocatedAddress, size, confAllocatedAddress, confSize); 
-        // To add a code for copying the configuration to the memory of the module 
-        // (define a possible struct) and send a pointer to it to the function 
-        // (or we can do this in Rust side before calling wasm)
 
         // Get the byte array from the memory address
         long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);

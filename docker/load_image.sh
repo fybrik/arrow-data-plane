@@ -1,1 +1,0 @@
-../../../bin/kind load docker-image ghcr.io/mohammad-nassar10/relay-flight-server:latest
