@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/fybrik/arrow-flight-module
   tag: 0.5.0
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   pullSecret: null
 
 nameOverride: ""
