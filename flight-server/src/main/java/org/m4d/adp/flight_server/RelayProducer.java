@@ -1,19 +1,13 @@
 package org.m4d.adp.flight_server;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.arrow.flight.*;
-import org.apache.arrow.flight.perf.impl.PerfOuterClass;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
-import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.Schema;
 import org.m4d.adp.allocator.AllocatorInterface;
 import org.m4d.adp.allocator.WasmAllocationFactory;
 import org.m4d.adp.transform.TransformInterface;
@@ -23,6 +17,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.HashMap;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Flight Producer for flight server that serves as relay to another flight
@@ -36,6 +37,10 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
     private final boolean transform;
     private final FlightClient client;
     private final Location location;
+    String configuration;
+    String wasmImage;
+    String transformConf;
+    String datasetName;
 
     public RelayProducer(Location location, Location remote_location, BufferAllocator allocator, boolean transform,
             boolean zeroCopy) {
@@ -44,6 +49,48 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         this.allocator = allocator;
         this.location = location;
         this.client = FlightClient.builder().allocator(allocator).location(remote_location).build();
+        this.configuration = "";
+    }
+
+    // Constructor with a configuration parameter
+    public RelayProducer(Location location, Location remote_location, BufferAllocator allocator, boolean transform,
+            boolean zeroCopy, String configuration) throws Exception {
+        this.transform = transform;
+        this.zeroCopy = zeroCopy;
+        this.allocator = allocator;
+        this.location = location;
+        this.client = FlightClient.builder().allocator(allocator).location(remote_location).build();
+        this.configuration = configuration;
+        //// Parsing the configuration
+        ObjectMapper mapper = new ObjectMapper();
+        // Read the configuration String as a map from String to Object
+        Map<String, Object> conf = mapper.readValue(configuration, new TypeReference<Map<String, Object>>(){});
+        // Getting the dataset we want to read and transform (Here we assume there is only one dataset)
+        List<Map<String, Object>> data = (List<Map<String, Object>>) conf.get("data");
+        Map<String, Object> data1 = data.get(0);
+        this.datasetName = (String) data1.get("name");
+        // Get the actions that should be performed
+        // TODO: Generalize to more than one transformation
+        List<Map<String, Object>> transformationsJson = (List<Map<String, Object>>) data1.get("transformations");
+        String actionName = (String) transformationsJson.get(0).get("name");
+        // Get the arguments of the transformation in order to move them to the Wasm side
+        Map<String, Object> argsJsonMap = (Map<String, Object>) transformationsJson.get(0).get(actionName);
+        String argsJsonStr = mapper.writeValueAsString(argsJsonMap);
+        // System.out.println("transform map = " + transformationsJson + " action name = " + actionName + " args = " + argsJsonStr);
+        this.transformConf = argsJsonStr;
+        
+        // Now we want to get the oci image that related to the action
+        // The mapping from actions to images exists in a list of "transformations"
+        List<Map<String, Object>> imageMappings = (List<Map<String, Object>>) conf.get("transformations");
+        for (int i = 0; i < imageMappings.size(); i++) {
+            Map<String, Object> actionConf = imageMappings.get(i);
+            String ociActionName = (String) actionConf.get("name");
+            if (ociActionName.equalsIgnoreCase(actionName)) {
+                this.wasmImage = (String) actionConf.get("wasm_image");
+                break;
+            }
+        }
+        // System.out.println("wasm image: " + this.wasmImage + " dataset name: " + this.datasetName + " conf: " + this.transformConf);
     }
 
     private byte[] WASMTransformByteArray(long instance_ptr, byte[] recordBatchByteArray, int size) {
@@ -53,11 +100,18 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         ByteBuffer buffer = MemoryUtil.directBuffer(allocatedAddress + wasm_mem_address, size);
         buffer.put(recordBatchByteArray, 0, size);
 
+        // Allocate a block in wasm memory and copy the configuration to this block
+        byte[] confBytes = this.transformConf.getBytes();
+        int confSize = confBytes.length;
+        long confAllocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, confSize);
+        wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
+        buffer = MemoryUtil.directBuffer(confAllocatedAddress + wasm_mem_address, confSize);
+        buffer.put(confBytes, 0, confSize);
         // Transform the vector schema root that is represented as a byte array in
         // `allocatedAddress` memory address with length `size`
         // The function returns a tuple of `(address, lenght)` of as byte array that
         // represents the transformed vector schema root
-        long transformed_bytes_tuple = TransformInterface.TransformationIPC(instance_ptr, allocatedAddress, size);
+        long transformed_bytes_tuple = TransformInterface.TransformationIPC(instance_ptr, allocatedAddress, size, confAllocatedAddress, confSize); 
 
         // Get the byte array from the memory address
         long transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);
@@ -89,8 +143,9 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
     }
 
     public void getStreamTransform(CallContext context, Ticket ticket, ServerStreamListener listener) throws Exception {
+        // Get instance of the Wasm module that related to the requested action 
         try (FlightStream stream = client.getStream(ticket);
-                WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory()) {
+                WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory(this.wasmImage)) {
             long instance_ptr = wasmAllocationFactory.wasmInstancePtr();
             VectorLoader loader = null;
             while (stream.next()) {
@@ -161,26 +216,35 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         }
     }
 
+
     @Override
-    public FlightInfo getFlightInfo(FlightProducer.CallContext context, FlightDescriptor descriptor) {
-        Preconditions.checkArgument(descriptor.isCommand());
-        // Perf exec = Perf.parseFrom(descriptor.getCommand());
+    public FlightInfo getFlightInfo(FlightProducer.CallContext context,
+                                    FlightDescriptor descriptor) {
+        final CallHeaders callHeaders = new FlightCallHeaders();
+        final HeaderCallOption clientProperties = new HeaderCallOption(callHeaders);
+        // Create a request of the dataset for the arrow-flight server
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> request = new HashMap<String, Object>();
+        System.out.println("dataset name = " + datasetName);
+        request.put("asset", datasetName);
+        List<String> list = new ArrayList<String>();
+        list.add("name");
+        list.add("age");
+        list.add("street");
+        list.add("country");
+        request.put("columns", list);
 
-        final Schema pojoSchema = new Schema(ImmutableList.of(Field.nullable("a", Types.MinorType.BIGINT.getType()),
-                Field.nullable("b", Types.MinorType.BIGINT.getType()),
-                Field.nullable("c", Types.MinorType.BIGINT.getType()),
-                Field.nullable("d", Types.MinorType.BIGINT.getType())));
-
-        int streamCount = 1;
-        PerfOuterClass.Token token = PerfOuterClass.Token.newBuilder().build();
-        final Ticket ticket = new Ticket(token.toByteArray());
-
-        List<FlightEndpoint> endpoints = new ArrayList<>();
-        for (int i = 0; i < streamCount; i++) {
-            endpoints.add(new FlightEndpoint(ticket, location));
+        // Convert the request to Json
+        String jsonStr = "";
+        try {
+            jsonStr = mapper.writeValueAsString(request);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
         }
-
-        return new FlightInfo(pojoSchema, descriptor, endpoints, -1, -1);
+        FlightDescriptor flightDescriptor = FlightDescriptor.command(jsonStr.getBytes(StandardCharsets.UTF_8));
+        FlightInfo flightInfo = client.getInfo(flightDescriptor, clientProperties);
+        System.out.println(flightInfo.getSchema());
+        return flightInfo;
     }
 
     @Override

@@ -11,7 +11,16 @@ import org.apache.arrow.memory.ReferenceManager;
  */
 public class WasmAllocationFactory implements AllocationManager.Factory, AutoCloseable{
     // Pointer to an instance of the WASM module that is used to allocate and deallocate memory.
-    long instancePtr = AllocatorInterface.wasmInstance("../wasm-modules/allocator/target/wasm32-wasi/release/alloc.wasm");
+    private long instancePtr;
+
+    public WasmAllocationFactory(String wasmImage) {
+        System.out.println("wasmallocationfactory");
+        instancePtr = AllocatorInterface.wasmInstance(wasmImage);
+    }
+
+    public WasmAllocationFactory() {
+        instancePtr = AllocatorInterface.wasmInstance("ghcr.io/the-mesh-for-data/alloc-transform:v1");
+    }
 
     @Override
     public AllocationManager create(BufferAllocator accountingAllocator, long size) {

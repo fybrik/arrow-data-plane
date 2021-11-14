@@ -3,6 +3,8 @@ package org.m4d.adp.flight_client;
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 import java.nio.charset.StandardCharsets;
@@ -43,14 +45,20 @@ public class MyFlightClient {
         while (s.next()) {
             root = s.getRoot();
             i++;
-            // System.out.println(i);
-            // System.out.println("client");
-            // System.out.println(root.getVector(0));
-            // System.out.println(root.getVector(1));
-            // System.out.println(root.getVector(2));
-            // System.out.println(root.getVector(3));
         }
         long finish = System.currentTimeMillis();
+        VarCharVector names = (VarCharVector) root.getVector(0);
+        BigIntVector ages = (BigIntVector) root.getVector(1);
+        VarCharVector streets = (VarCharVector) root.getVector(2);
+        VarCharVector countries = (VarCharVector) root.getVector(3);
+
+        for (int j = 0; j < root.getRowCount(); j++) {
+            System.out.print(new String(names.get(j)) + ", ");
+            System.out.print(ages.get(j) + ", ");
+            System.out.print(new String(streets.get(j)) + ", ");
+            System.out.println(new String(countries.get(j)));
+        }
+
 
         System.out.println("Time spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
         double throughput = (double)i * root.getRowCount() * 4 * 4 / ((finish - start) / 1000.0);
