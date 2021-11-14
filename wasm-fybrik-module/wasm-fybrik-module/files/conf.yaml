@@ -1,0 +1,14 @@
+{{- if .Values.read -}}
+transformations:
+  - name: "Filter"
+    wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
+  - name: "Redact"
+    wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
+data:
+{{- range .Values.read }}
+  - name: {{ .assetID | quote }}
+    transformations: {{ toJson .transformations }}
+{{- end -}}
+{{- else -}}
+data: []
+{{- end -}}

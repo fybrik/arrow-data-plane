@@ -1,0 +1,8 @@
+data:
+  - name: "default/fake.csv"
+    format: csv
+    path: "fake-csv-bucket/fake.csv"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
