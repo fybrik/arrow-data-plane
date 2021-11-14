@@ -45,33 +45,19 @@ public class MyFlightClient {
         while (s.next()) {
             root = s.getRoot();
             i++;
-            // System.out.println(i);
-            // // System.out.println("client");
-            // System.out.println(root.getVector(0));
-            // System.out.println(root.getVector(1));
-            // System.out.println(root.getVector(2));
-            // System.out.println(root.getVector(3));
         }
         long finish = System.currentTimeMillis();
-        ////
         VarCharVector names = (VarCharVector) root.getVector(0);
         BigIntVector ages = (BigIntVector) root.getVector(1);
-        // BigIntVector building_numbers = (BigIntVector) root.getVector(2);
         VarCharVector streets = (VarCharVector) root.getVector(2);
-        // VarCharVector cities = (VarCharVector) root.getVector(4);
         VarCharVector countries = (VarCharVector) root.getVector(3);
-        // BigIntVector postcodes = (BigIntVector) root.getVector(6);
 
         for (int j = 0; j < root.getRowCount(); j++) {
             System.out.print(new String(names.get(j)) + ", ");
             System.out.print(ages.get(j) + ", ");
-            // System.out.print(building_numbers.get(j) + ", ");
             System.out.print(new String(streets.get(j)) + ", ");
-            // System.out.print(new String(cities.get(j)) + ", ");
             System.out.println(new String(countries.get(j)));
-            // System.out.println(postcodes.get(j));
         }
-        ////
 
 
         System.out.println("Time spent traversing dataset: " + (finish - start)/1000.0 + " seconds");
