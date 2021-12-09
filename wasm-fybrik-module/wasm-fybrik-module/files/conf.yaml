@@ -2,6 +2,8 @@
 transformations:
   - name: "Filter"
     wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
+  - name: "Filter2"
+    wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
   - name: "Redact"
     wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
 data:

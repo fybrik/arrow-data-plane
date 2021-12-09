@@ -9,7 +9,7 @@ metadata:
 spec:
   type: service
   chart:
-    name: ghcr.io/fybrik/wasm-fybrik-module-chart:latest
+    name: ghcr.io/Mohammad-nassar10/wasm-fybrik-module-transform-chart:latest
     values:
       image.tag: v0.0.1 
   capabilities:
@@ -17,6 +17,7 @@ spec:
       scope: workload
       actions:
         - name: Filter
+        - name: Filter2
       api:
         endpoint:
           port: 80

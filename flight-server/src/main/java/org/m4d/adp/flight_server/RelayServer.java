@@ -79,6 +79,7 @@ public class RelayServer implements AutoCloseable {
         Object obj = yamlReader.readValue(yamlStr, Object.class);
         ObjectMapper jsonWriter = new ObjectMapper();
         String jsonStr =  jsonWriter.writeValueAsString(obj);
+        System.out.println("conf json str = " + jsonStr);
 
         final Location location;
         final NoOpFlightProducer producer;

@@ -6,5 +6,7 @@ RUN apt-get update \
 COPY logging.xml /root
 COPY flight-server-all.jar /root/
 COPY run_relay_server.sh /root/
+COPY alloc.wasm /root
+COPY transformation.wasm /root
 
 CMD ["/root/run_relay_server.sh", "arrow-flight", "80"]

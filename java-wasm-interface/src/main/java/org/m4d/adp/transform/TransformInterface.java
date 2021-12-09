@@ -31,5 +31,7 @@ public class TransformInterface {
     public static native long GetFirstElemOfTuple(long instance_ptr, long tuple_ptr);
     public static native long GetSecondElemOfTuple(long instance_ptr, long tuple_ptr);
     public static native void DropTuple(long instance_ptr, long tuple_ptr);
-    public static native long TransformationIPC(long instance_ptr, long allocatedAddress, long size, long confAllocatedAddress, long confSize);
+    public static native long TransformationIPC(long instance_ptr, long allocatedAddress, long size, long confAllocatedAddress, long confSize, long i);
+    public static native long wasmInstancePtr(long instance_ptr, String wasmImage);
+    public static native long wasmAlloc(long instancePtr, long size);
 } 
