@@ -4,5 +4,5 @@ rule[{"action": {"name":"Filter", "op": ">", "value": 18, "column": "age"}, "pol
 	description := "filter the data according to the given operation, value, and column. Filter the rows that has a value in column `column` that satisfies the operation `op` with value `value`"
 	#user context and access type check
 	input.action.actionType == "read"
-    input.resource.tags.finance
+	input.resource.tags.finance
 }

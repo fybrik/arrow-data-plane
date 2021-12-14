@@ -117,7 +117,6 @@ pub fn create_tuple_ptr(elem1: i64, elem2: i64) -> i64 {
 
 #[no_mangle]
 pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_address: i64, conf_size: i64) -> i64 {
-    println!("Wasm side bytes_ptr = {:?}, conf_size = {:?}", bytes_ptr, conf_address);
     // Read the memory block of the configuration and convert it to bytes array
     let conf_bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(conf_address as *mut _, conf_size as usize, conf_size as usize) };
     // Convert the byte array to a Json Strong 
@@ -130,9 +129,6 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_addr
     mem::forget(conf_bytes_array);
 
     // Read the byte array in the given address and length
-    // let tuple = Into::<Pointer<Tuple>>::into(bytes_ptr).borrow();
-    // let bytes_ptr = (*tuple).0;
-    // let bytes_len = (*tuple).1;
     let bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(bytes_ptr as *mut _, bytes_len as usize, bytes_len as usize) };
     let cursor = Cursor::new(bytes_array);
     let reader = StreamReader::try_new(cursor).unwrap();
@@ -142,7 +138,7 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_addr
         // Transform the record batch
         let transformed = transform_record_batch(batch, filter_col, filter_val, filter_op);
 
-        // Write the transformed record batch uing IPC
+        // Write the transformed record batch using IPC
         let schema = transformed.schema();
         let vec = Vec::new();
         let mut writer = crate::ipc::writer::StreamWriter::try_new(vec, &schema).unwrap();

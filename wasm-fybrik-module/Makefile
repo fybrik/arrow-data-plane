@@ -1,7 +1,7 @@
 export DOCKER_USERNAME ?= 
 export DOCKER_PASSWORD ?= 
 export DOCKER_HOSTNAME ?= ghcr.io
-export DOCKER_NAMESPACE ?= Mohammad-nassar10
+export DOCKER_NAMESPACE ?=
 export DOCKER_TAGNAME ?= latest
 
 DOCKER_IMG_NAME ?= wasm-fybrik-module

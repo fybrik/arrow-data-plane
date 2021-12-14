@@ -10,3 +10,5 @@ COPY alloc.wasm /root
 COPY transformation.wasm /root
 
 CMD ["/root/run_relay_server.sh", "arrow-flight", "80"]
+# CMD["sleep"]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]

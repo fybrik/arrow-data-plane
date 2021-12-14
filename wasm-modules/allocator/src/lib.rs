@@ -76,6 +76,7 @@ pub fn alloc(len: i64) -> *mut c_void {
 pub unsafe fn dealloc(ptr: i64, size: i64) {
     let data = Vec::from_raw_parts(ptr as *mut u8, size as usize, size as usize);
     std::mem::drop(data);
+    println!("dealloc wasm side");
 }    
 
 
@@ -121,7 +122,6 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_addr
     // Read the memory block of the configuration and convert it to bytes array
     let conf_bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(conf_address as *mut _, conf_size as usize, conf_size as usize) };
     // Convert the byte array to a Json Strong 
-    // println!("write from bytes 1");
     let json_str = std::str::from_utf8(&conf_bytes_array).unwrap();
     let json: Value = serde_json::from_str(json_str).unwrap();
     // Parse the Json to get the expected arguments
@@ -132,17 +132,12 @@ pub fn read_transform_write_from_bytes(bytes_ptr: i64, bytes_len: i64, conf_addr
     // Read the byte array in the given address and length
     let bytes_array: Vec<u8> = unsafe{ Vec::from_raw_parts(bytes_ptr as *mut _, bytes_len as usize, bytes_len as usize) };
     let cursor = Cursor::new(bytes_array);
-// println!("write from bytes 2");
     let reader = StreamReader::try_new(cursor).unwrap();
-// println!("write from bytes 3");
-let mut ret_ptr = 0;
+    let mut ret_ptr = 0;
     reader.for_each(|batch| {
         let batch = batch.unwrap();
         // Transform the record batch
         let transformed = transform_record_batch(batch, filter_col, filter_val, filter_op);
-        // let transformed = batch;
-        println!("write from bytes transformed = {:?}", transformed);
-
         // Write the transformed record batch uing IPC
         let schema = transformed.schema();
         let vec = Vec::new();
@@ -155,8 +150,6 @@ let mut ret_ptr = 0;
         let bytes_len = bytes_array.len();
         mem::forget(bytes_array);
         ret_ptr = create_tuple_ptr(bytes_ptr as i64, bytes_len as i64);
-// println!("write from bytes 4");
-
     });
     ret_ptr
 }

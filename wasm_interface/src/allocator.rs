@@ -35,7 +35,7 @@ use wasmtime_wasi::sync::WasiCtxBuilder;
 #[no_mangle]
 pub fn wasmTimeInstance(wasm_images: Vec<String>) -> i64 {
     println!("wasm time instance, wasm images = {:?}", wasm_images);
-    let wasm_images = ["alloc.wasm", "transformation.wasm"]; 
+    let wasm_images = ["alloc.wasm", "transformation.wasm"];
     // let path1 = "alloc.wasm";
     // let path2 = "transformation.wasm";
     let len = wasm_images.len();
@@ -142,4 +142,5 @@ pub extern fn wasmDealloc(wasm_module_ptr: i64, offset: i64, size: i64){
     let wasm_module = Into::<Pointer<WasmTimeModule>>::into(wasm_module_ptr).borrow();
     let dealloc_func = &wasm_module.dealloc_func;
     dealloc_func.call(&mut wasm_module.store, (offset, size as i64)).unwrap();
+    println!("wasm dealloc, ptr = {:?}, size = {:?}", offset, size);
 }
