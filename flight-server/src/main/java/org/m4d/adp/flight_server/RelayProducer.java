@@ -24,6 +24,8 @@ import java.util.HashMap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Flight Producer for flight server that serves as relay to another flight
@@ -41,6 +43,7 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
     ArrayList<String> wasmImages;
     ArrayList<String> transformConfs;
     String datasetName;
+    private static Logger LOGGER = LoggerFactory.getLogger(RelayProducer.class);
 
     public RelayProducer(Location location, Location remote_location, BufferAllocator allocator, boolean transform,
             boolean zeroCopy) {
@@ -72,7 +75,6 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         Map<String, Object> data1 = data.get(0);
         this.datasetName = (String) data1.get("name");
         // Get the actions that should be performed
-        // TODO: Generalize to more than one transformation
         this.transformConfs = new ArrayList<String>();
         ArrayList<String> actionNames = new ArrayList<String>();
         List<Map<String, Object>> transformationsJson = (List<Map<String, Object>>) data1.get("transformations");
@@ -83,11 +85,9 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
             // side
             Map<String, Object> argsJsonMap = (Map<String, Object>) transformationJson.get(actionName);
             String argsJsonStr = mapper.writeValueAsString(argsJsonMap);
-            System.out.println("transform map = " + transformationsJson + " action name = " + actionName + " args = "
-                    + argsJsonStr);
             this.transformConfs.add(argsJsonStr);
         }
-        System.out.println("action names = " + actionNames);
+        LOGGER.debug("action names = " + actionNames);
 
         // Now we want to get the oci image that related to the action
         // The mapping from actions to images exists in a list of "transformations"
@@ -98,83 +98,55 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
                 String ociActionName = (String) imageMapping.get("name");
                 if (ociActionName.equalsIgnoreCase(actionName)) {
                     this.wasmImages.add((String) imageMapping.get("wasm_image"));
-                    System.out.println("wasm images = " + this.wasmImages);
                     break;
                 }
             }
         }
-        System.out.println("wasm images: " + this.wasmImages + " dataset name: " + this.datasetName + " conf: "
+        LOGGER.debug("wasm images: " + this.wasmImages + " dataset name: " + this.datasetName + " conf: "
                 + this.transformConfs);
     }
 
-    private byte[] WASMTransformByteArray(long instance_ptr_alloc, ArrayList<Long> wasmInstances,
-            byte[] recordBatchByteArray, int size) {
-        ///////////////////////////////////
-        // Try more than one transformation
-        byte[] transformedRecordBatchByteArray = null;
-        long wasm_time_module = instance_ptr_alloc;
-        long instance_ptr = wasm_time_module;
+    private byte[] WASMTransformByteArray(long wasm_data_ptr, byte[] recordBatchByteArray, int size) {
         long transformed_bytes_tuple = 0;
-        long bytes_size = size;
-        System.out.println("transformations loop record batch1 = " + recordBatchByteArray.length + " size = " + size);
         // Allocate a block in wasm memory and copy the byte array to this block
-        long allocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, size);
-        System.out.println("after alloc");
-        long wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
-        System.out.println("direct buffer");
+        long allocatedAddress = AllocatorInterface.wasmAlloc(wasm_data_ptr, size);
+        long wasm_mem_address = AllocatorInterface.wasmMemPtr(wasm_data_ptr);
         ByteBuffer buffer = MemoryUtil.directBuffer(allocatedAddress + wasm_mem_address, size);
-        System.out.println("put record batch = " + recordBatchByteArray);
         buffer.put(recordBatchByteArray, 0, size);
         long transformed_bytes_address = 0;
         long transformed_bytes_len = 0;
 
-        System.out.println("transformations loop, allocated address = " + allocatedAddress + " size " + size);
-        // Allocate a block in wasm memory and copy the configuration to this block
-        for (int i = this.transformConfs.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < this.transformConfs.size(); i++) {
+            // Allocate a block in wasm memory and copy the configuration that relates to
+            // the i-th transformation to this block
             byte[] confBytes = this.transformConfs.get(i).getBytes();
             int confSize = confBytes.length;
-            long confAllocatedAddress = AllocatorInterface.wasmAlloc(instance_ptr, confSize);
-            wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
+            long confAllocatedAddress = AllocatorInterface.wasmAlloc(wasm_data_ptr, confSize);
+            wasm_mem_address = AllocatorInterface.wasmMemPtr(wasm_data_ptr);
             buffer = MemoryUtil.directBuffer(confAllocatedAddress + wasm_mem_address, confSize);
             buffer.put(confBytes, 0, confSize);
             // Transform the vector schema root that is represented as a byte array in
             // `allocatedAddress` memory address with length `size`
             // The function returns a tuple of `(address, length)` of as byte array that
             // represents the transformed vector schema root
-            transformed_bytes_tuple = TransformInterface.TransformationIPC(instance_ptr, allocatedAddress, size,
+            transformed_bytes_tuple = TransformInterface.TransformationIPC(wasm_data_ptr, allocatedAddress, size,
                     confAllocatedAddress, confSize, i);
-            // Get the byte array from the memory address
-            transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(instance_ptr, transformed_bytes_tuple);
-            transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(instance_ptr, transformed_bytes_tuple);
-            // allocatedAddress = transformed_bytes_address;
-            // size = (int) transformed_bytes_len;
-            // TransformInterface.DropTuple(instance_ptr_transform,
-            // transformed_bytes_tuple);
-            // allocatedAddress = transformed_bytes_tuple;
+            // Set the variables to the transformed byte array for the next transformation
+            transformed_bytes_address = TransformInterface.GetFirstElemOfTuple(wasm_data_ptr, transformed_bytes_tuple);
+            transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(wasm_data_ptr, transformed_bytes_tuple);
             allocatedAddress = transformed_bytes_address;
             size = (int) transformed_bytes_len;
-            AllocatorInterface.wasmDealloc(instance_ptr, confAllocatedAddress, confSize);
+            // Deallocate the configuration's block of memory 
+            AllocatorInterface.wasmDealloc(wasm_data_ptr, confAllocatedAddress, confSize);
         }
-        // transformed_bytes_address =
-        // TransformInterface.GetFirstElemOfTuple(instance_ptr,
-        // transformed_bytes_tuple);
-        // transformed_bytes_len = TransformInterface.GetSecondElemOfTuple(instance_ptr,
-        // transformed_bytes_tuple);
-        wasm_mem_address = AllocatorInterface.wasmMemPtr(instance_ptr);
-        System.out.println("WASMTransformByteArray3 " + wasm_mem_address);
+        // Get the byte array from the memory address
+        wasm_mem_address = AllocatorInterface.wasmMemPtr(wasm_data_ptr);
         ByteBuffer transformed_buffer = MemoryUtil.directBuffer(transformed_bytes_address + wasm_mem_address,
                 (int) transformed_bytes_len);
-        transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
+        byte[] transformedRecordBatchByteArray = new byte[(int) transformed_bytes_len];
         transformed_buffer.get(transformedRecordBatchByteArray);
-        // recordBatchByteArray = transformedRecordBatchByteArray;
-        // size = recordBatchByteArray.length;
         // Deallocate transformed bytes
-        TransformInterface.DropTuple(instance_ptr, transformed_bytes_tuple);
-        // AllocatorInterface.wasmDealloc(instance_ptr, allocatedAddress, bytes_size);
-        // AllocatorInterface.wasmDealloc(instance_ptr, transformed_bytes_address,
-        // transformed_bytes_len);
-        // Try more than one transformation
-        ///////////////////////////////////
+        TransformInterface.DropTuple(wasm_data_ptr, transformed_bytes_tuple);
         return transformedRecordBatchByteArray;
     }
 
@@ -195,13 +167,10 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
     }
 
     public void getStreamTransform(CallContext context, Ticket ticket, ServerStreamListener listener) throws Exception {
-        // Get instance of the Wasm module that related to the requested action
         try (FlightStream stream = client.getStream(ticket);
                 WasmAllocationFactory wasmAllocationFactory = new WasmAllocationFactory(this.wasmImages);) {
-            long instance_ptr_alloc = wasmAllocationFactory.wasmInstancePtr();
+            long wasm_data_ptr = wasmAllocationFactory.wasmDataPtr();
 
-            ArrayList<Long> wasmInstances = new ArrayList<Long>();
-            System.out.println("get stream transform");
             VectorLoader loader = null;
             while (stream.next()) {
                 try (NoCopyByteArrayOutputStream out = new NoCopyByteArrayOutputStream()) {
@@ -215,21 +184,15 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
                     }
 
                     // Transform the original record batch
-                    byte[] transformedRecordBatchByteArray = WASMTransformByteArray(instance_ptr_alloc, wasmInstances,
-                            out.getBuffer(),
+                    byte[] transformedRecordBatchByteArray = WASMTransformByteArray(wasm_data_ptr, out.getBuffer(),
                             out.size());
-
-                    System.out.println("getStreamTransform 1");
 
                     // Read the byte array to get the transformed batch
                     try (ArrowStreamReader reader = new ArrowStreamReader(
                             new ByteArrayInputStream(transformedRecordBatchByteArray), allocator)) {
                         VectorSchemaRoot transformedVSR = reader.getVectorSchemaRoot();
-                        // System.out.println("getStreamTransform transformed vsr = " +
-                        // transformedVSR.contentToTSVString());
                         reader.loadNextBatch();
                         VectorUnloader unloader = new VectorUnloader(transformedVSR);
-                        System.out.println("getStreamTransform 2");
 
                         // First time initialization
                         if (loader == null) {
@@ -240,8 +203,6 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
                         }
                         loader.load(unloader.getRecordBatch());
                         listener.putNext();
-                        System.out.println("getStreamTransform 1");
-
                     }
                 }
             }
@@ -287,7 +248,7 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         // Create a request of the dataset for the arrow-flight server
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> request = new HashMap<String, Object>();
-        System.out.println("dataset name = " + datasetName);
+        LOGGER.debug("dataset name = " + datasetName);
         request.put("asset", datasetName);
         List<String> list = new ArrayList<String>();
         list.add("name");
@@ -305,7 +266,7 @@ public class RelayProducer extends NoOpFlightProducer implements AutoCloseable {
         }
         FlightDescriptor flightDescriptor = FlightDescriptor.command(jsonStr.getBytes(StandardCharsets.UTF_8));
         FlightInfo flightInfo = client.getInfo(flightDescriptor, clientProperties);
-        System.out.println(flightInfo.getSchema());
+        LOGGER.debug("Schema = " + flightInfo.getSchema());
         return flightInfo;
     }
 

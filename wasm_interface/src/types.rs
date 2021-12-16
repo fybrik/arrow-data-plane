@@ -1,9 +1,7 @@
 use jni::sys::jlong;
+use std::ops::Deref;
 use wasmtime::{Instance, Store, TypedFunc};
 use wasmtime_wasi::WasiCtx;
-// use wasmer::{Instance, NativeFunc};
-use std::ops::Deref;
-
 
 #[allow(non_camel_case_types)]
 pub type jptr = jlong;
@@ -47,14 +45,9 @@ impl<Kind> Deref for Pointer<Kind> {
     }
 }
 
-// pub struct WasmModule {
-//     pub instance: Pointer<Instance>,
-//     pub alloc_func: NativeFunc<i64, i32>,
-//     pub dealloc_func: NativeFunc<(i64, i64)>,
-// }
-
-pub struct WasmTimeModule {
-    pub wasm_instances: Vec<Pointer<Instance>>,
+pub struct WasmTimeData {
+    pub wasm_alloc_instance: Pointer<Instance>,
+    pub wasm_transform_instances: Vec<Pointer<Instance>>,
     pub alloc_func: TypedFunc<i64, i32>,
     pub dealloc_func: TypedFunc<(i64, i64), ()>,
     pub store: Store<WasiCtx>,
@@ -62,4 +55,4 @@ pub struct WasmTimeModule {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct Tuple (pub i64, pub i64 );
+pub struct Tuple(pub i64, pub i64);

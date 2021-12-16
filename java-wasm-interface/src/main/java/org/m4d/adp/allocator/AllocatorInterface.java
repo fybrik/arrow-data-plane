@@ -1,10 +1,6 @@
 package org.m4d.adp.allocator;
 
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-
 import org.m4d.adp.WasmInterface;
 import java.io.IOException;
 import org.scijava.nativelib.NativeLoader;
@@ -29,7 +25,7 @@ public class AllocatorInterface {
         }
     }
 
-    public static native long wasmTimeInstance(ArrayList<String> wasmImages);
+    public static native long wasmTimeData(ArrayList<String> wasmImages);
     public static native void wasmDrop(long instancePtr);
     public static native long wasmAlloc(long instancePtr, long size);
     public static native long wasmMemPtr(long instancePtr);
