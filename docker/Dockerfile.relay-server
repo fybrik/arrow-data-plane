@@ -7,6 +7,6 @@ COPY logging.xml /root
 COPY flight-server-all.jar /root/
 COPY run_relay_server.sh /root/
 COPY alloc.wasm /root
-COPY transformation.wasm /root
+COPY filter.wasm /root
 
 CMD ["/root/run_relay_server.sh", "arrow-flight", "80"]

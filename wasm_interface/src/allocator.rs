@@ -12,7 +12,7 @@ use wasmtime_wasi::sync::WasiCtxBuilder;
 #[no_mangle]
 pub fn wasmTimeData(wasm_images: Vec<String>) -> i64 {
     // let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
-    let wasm_images = ["alloc.wasm", "transformation.wasm", "transformation.wasm"];
+    let wasm_images = ["alloc.wasm", "filter.wasm", "filter.wasm"];
     let len = wasm_images.len();
     if len == 0 {
         println!("Error: number of wasm images must be larger than 0");
