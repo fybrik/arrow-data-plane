@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use crate::{
     oci_cache,
     types::{Pointer, WasmTimeData},
@@ -11,9 +9,14 @@ use wasmtime_wasi::sync::WasiCtxBuilder;
 // A function that takes a path to OCI image and returns a Pointer of type WasmModule.
 #[no_mangle]
 pub fn wasmTimeData(wasm_images: Vec<String>) -> i64 {
-    // let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, path).unwrap();
-    let wasm_images = ["alloc.wasm", "filter.wasm", "filter.wasm"];
-    let len = wasm_images.len();
+    let mut oci_images = Vec::new();
+    let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, "ghcr.io/the-mesh-for-data/alloc:v1".to_string()).unwrap();
+    oci_images.push(wasm_bytes_file);
+    for img in wasm_images.iter() {
+        let wasm_bytes_file = oci_cache::cached_pull_wasm_module(None, None, img.to_string()).unwrap();
+        oci_images.push(wasm_bytes_file);
+    }
+    let len = oci_images.len();
     if len == 0 {
         println!("Error: number of wasm images must be larger than 0");
     }
@@ -24,8 +27,8 @@ pub fn wasmTimeData(wasm_images: Vec<String>) -> i64 {
     let mut linker = Linker::new(&engine);
     wasmtime_wasi::add_to_linker(&mut linker, |s| s).unwrap();
     // The first wasm module is responsible of allocations, it doesn't import memory
-    let path1 = wasm_images.get(0).unwrap();
-    let module1 = Module::from_file(&engine, path1).unwrap();
+    let wasm_bytes1 = oci_images.get(0).unwrap();
+    let module1 = Module::from_binary(&engine, wasm_bytes1).unwrap();
     let wasi = WasiCtxBuilder::new()
         .inherit_stdio()
         .inherit_args()
@@ -54,8 +57,8 @@ pub fn wasmTimeData(wasm_images: Vec<String>) -> i64 {
     // Create instances from the transformation wasm modules.
     // The transformation modules import the same memory as the allocation module
     for i in 1..len {
-        let path = wasm_images.get(i).unwrap();
-        let module = Module::from_file(&engine, path).unwrap();
+        let wasm_bytes = oci_images.get(i).unwrap();
+        let module = Module::from_binary(&engine, wasm_bytes).unwrap();
         let instance = linker.instantiate(&mut store, &module).unwrap();
         let instance_ptr: Pointer<Instance> = Pointer::new(instance).into();
         wasm_transform_instances.push(instance_ptr);

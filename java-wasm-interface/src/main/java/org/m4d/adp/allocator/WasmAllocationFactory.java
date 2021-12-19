@@ -15,7 +15,6 @@ public class WasmAllocationFactory implements AllocationManager.Factory, AutoClo
     private long wasmData;
 
     public WasmAllocationFactory(ArrayList<String> wasmImages) {
-        System.out.println("wasmallocationfactory");
         wasmData = AllocatorInterface.wasmTimeData(wasmImages);
     }
 
