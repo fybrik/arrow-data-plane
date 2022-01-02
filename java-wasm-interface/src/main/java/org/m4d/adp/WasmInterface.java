@@ -1,7 +1,5 @@
 package org.m4d.adp;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.IOException;
 import org.scijava.nativelib.NativeLoader;
 import org.slf4j.Logger;

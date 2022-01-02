@@ -21,12 +21,15 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class RelayServer implements AutoCloseable {
 
     private final FlightServer flightServer;
     private final BufferAllocator allocator;
+    private static Logger LOGGER = LoggerFactory.getLogger(RelayServer.class);
 
     public void close() throws Exception {
         AutoCloseables.close(flightServer, allocator);
@@ -79,6 +82,7 @@ public class RelayServer implements AutoCloseable {
         Object obj = yamlReader.readValue(yamlStr, Object.class);
         ObjectMapper jsonWriter = new ObjectMapper();
         String jsonStr =  jsonWriter.writeValueAsString(obj);
+        LOGGER.debug("configuration json string = " + jsonStr);
 
         final Location location;
         final NoOpFlightProducer producer;

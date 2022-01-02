@@ -1,9 +1,11 @@
 {{- if .Values.read -}}
 transformations:
-  - name: "Filter"
-    wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
-  - name: "Redact"
-    wasm_image: "ghcr.io/the-mesh-for-data/alloc-transform:v1"
+  - name: "Alloc"
+    wasm_image: "ghcr.io/the-mesh-for-data/alloc:v1"
+  - name: "Filter_age_18"
+    wasm_image: "ghcr.io/the-mesh-for-data/filter:v1"
+  - name: "Filter_age_22"
+    wasm_image: "ghcr.io/the-mesh-for-data/filter:v1"
 data:
 {{- range .Values.read }}
   - name: {{ .assetID | quote }}

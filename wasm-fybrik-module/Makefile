@@ -1,11 +1,11 @@
 export DOCKER_USERNAME ?= 
 export DOCKER_PASSWORD ?= 
 export DOCKER_HOSTNAME ?= ghcr.io
-export DOCKER_NAMESPACE ?= 
+export DOCKER_NAMESPACE ?= fybrik
 export DOCKER_TAGNAME ?= latest
 
 DOCKER_IMG_NAME ?= wasm-fybrik-module
-DOCKER_CHART_IMG_NAME ?= wasm-fybrik-module-chart
+DOCKER_CHART_IMG_NAME ?= wasm-fybrik-module-transform-chart
 DOCKER_FILE ?= Dockerfile
 DOCKER_CONTEXT ?= .
 
